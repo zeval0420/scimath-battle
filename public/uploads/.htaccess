@@ -1,0 +1,11 @@
+# Defense in depth: this directory should only ever contain re-encoded
+# image files written by src/Support/Uploader.php. Even so, explicitly
+# refuse to execute any script here in case of server misconfiguration
+# or a future change that writes other file types.
+
+<FilesMatch "\.(php|php\d?|phtml|pht|phar|cgi|pl|py|sh|asp|aspx|exe)$">
+    Require all denied
+</FilesMatch>
+
+Options -ExecCGI
+php_flag engine off
