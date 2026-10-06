@@ -1,0 +1,193 @@
+/* ============================================================
+   SciMath Operator Console
+   Extends admin.css design tokens
+   ============================================================ */
+
+/* ─── LAYOUT ─────────────────────────────────────────────── */
+.op-wrap {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 1000px) { .op-wrap { grid-template-columns: 1fr; } }
+
+.op-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.op-event-name {
+    font-family: var(--font-serif);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+}
+.op-progress { color: var(--text-secondary); font-size: 0.92rem; }
+
+/* ─── DISPLAY STATE BANNER ───────────────────────────────── */
+.op-display-state {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: var(--radius-card);
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    border: 2px solid transparent;
+}
+.op-display-state .label {
+    opacity: 0.75;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.op-display-state.state-cover         { background: #E2E8F0; color: #475569; border-color: #CBD5E1; }
+.op-display-state.state-question      { background: #DBEAFE; color: #1D4ED8; border-color: #93C5FD; }
+.op-display-state.state-time_up       { background: var(--error-bg); color: #B91C1C; border-color: var(--error-border); }
+.op-display-state.state-ranking       { background: #EDE9FE; color: #6D28D9; border-color: #C4B5FD; }
+.op-display-state.state-final_results { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+
+/* ─── PANELS ─────────────────────────────────────────────── */
+.op-panel {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-card);
+}
+.op-panel h2 {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin: 0 0 14px;
+}
+
+/* ─── QUESTION PREVIEW ───────────────────────────────────── */
+.op-question-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-size: 0.92rem;
+}
+.op-question-meta .stat { display: flex; flex-direction: column; }
+.op-question-meta .stat .value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+.op-question-meta .stat .label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.op-question-preview {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: var(--radius-input);
+    border: 1px solid var(--border);
+    display: block;
+    background: var(--input-bg);
+}
+.op-nav-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+.op-nav-buttons .btn { min-width: 110px; text-align: center; }
+
+/* ─── TIMER ──────────────────────────────────────────────── */
+.op-timer-display {
+    font-family: "SF Mono", Consolas, Menlo, monospace;
+    font-size: 4rem;
+    font-weight: 800;
+    text-align: center;
+    padding: 12px 0;
+    border-radius: var(--radius-card);
+    margin-bottom: 14px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+}
+.op-timer-display.timer-idle    { background: #E2E8F0; color: #475569; }
+.op-timer-display.timer-running { background: var(--success-bg); color: var(--success); }
+.op-timer-display.timer-paused  { background: #FEF3C7; color: #92400E; }
+.op-timer-display.timer-expired { background: var(--error-bg); color: var(--error); animation: op-pulse 1.4s ease-in-out infinite; }
+@keyframes op-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+.op-timer-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.op-timer-buttons .btn { padding: 14px 8px; font-size: 0.92rem; }
+
+/* ─── SCORE ENTRY ────────────────────────────────────────── */
+.op-score-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+.op-score-row:last-child { border-bottom: none; }
+.op-score-name { flex: 1 1 auto; min-width: 0; }
+.op-score-name .name { font-weight: 700; display: block; }
+.op-score-name .total { color: var(--text-secondary); font-size: 0.82rem; }
+.op-score-buttons { display: flex; gap: 6px; flex-shrink: 0; }
+.op-score-btn {
+    padding: 8px 12px;
+    border-radius: var(--radius-btn);
+    border: 1px solid var(--border);
+    background: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
+}
+.op-score-btn.correct   { color: var(--success); }
+.op-score-btn.incorrect { color: var(--error); }
+.op-score-btn.no-answer { color: var(--text-secondary); }
+.op-score-btn.selected.correct   { background: var(--success); color: #fff; border-color: var(--success); }
+.op-score-btn.selected.incorrect { background: var(--error); color: #fff; border-color: var(--error); }
+.op-score-btn.selected.no-answer { background: #64748B; color: #fff; border-color: #64748B; }
+.op-score-btn:disabled { opacity: 0.5; cursor: default; }
+.op-saved-flash { color: var(--success); font-size: 0.72rem; margin-left: 6px; opacity: 0; transition: opacity 0.2s; }
+.op-saved-flash.show { opacity: 1; }
+
+/* ─── RANKINGS ───────────────────────────────────────────── */
+.op-rank-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+.op-rank-row:last-child { border-bottom: none; }
+.op-rank-num { font-weight: 800; width: 28px; display: inline-block; color: var(--primary); }
+
+.op-event-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+.op-poll-indicator { font-size: 0.75rem; color: var(--text-secondary); }
+.op-poll-indicator.stale { color: var(--error); font-weight: 700; }
+
+/* ---- Footer ---- */
+.op-footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+}
+.op-footer strong { color: var(--text-primary); }

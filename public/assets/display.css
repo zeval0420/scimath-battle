@@ -1,0 +1,295 @@
+:root {
+    --disp-accent: #4F73D9;
+    --disp-gold: #e8b93a;
+    --disp-silver: #b8bfc9;
+    --disp-bronze: #c1793f;
+    --disp-dark-1: #0b1224;
+    --disp-dark-2: #141b30;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #fff;
+}
+
+#disp-root { position: relative; width: 100vw; height: 100vh; }
+
+/* Every state section stacks in the same spot; only one is visible/opaque
+   at a time. A simple opacity crossfade is the only transition -- nothing
+   that could distract from reading the content mid-change. */
+.disp-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 320ms ease;
+}
+.disp-state.is-active { opacity: 1; visibility: visible; }
+
+/* ============== COVER ============== */
+.disp-cover {
+    background: linear-gradient(160deg, var(--disp-dark-1), var(--disp-dark-2));
+}
+.disp-cover-bg {
+    position: absolute; inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.55;
+}
+.disp-cover-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(11,18,36,0.55) 0%, rgba(11,18,36,0.85) 100%);
+}
+.disp-cover-content {
+    position: relative;
+    text-align: center;
+    padding: 0 6vw;
+    max-width: 90vw;
+}
+.disp-cover-logo { max-width: 260px; max-height: 200px; object-fit: contain; margin-bottom: 28px; }
+.disp-cover-name {
+    font-size: clamp(2.4rem, 5.2vw, 4.6rem);
+    font-weight: 800;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
+    text-shadow: 0 2px 24px rgba(0,0,0,0.5);
+}
+.disp-cover-subtitle {
+    font-size: clamp(1.1rem, 2vw, 1.8rem);
+    color: #cdd4e6;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* ============== QUESTION ============== */
+.disp-question { background: #f4f5f7; color: #1f2430; }
+.disp-question-topbar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 48px;
+}
+.disp-question-category {
+    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+    font-weight: 700;
+    color: var(--disp-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.disp-question-number {
+    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+    font-weight: 700;
+    color: #4b5563;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.disp-timer {
+    font-family: "SF Mono", Consolas, Menlo, monospace;
+    font-size: clamp(2.2rem, 4vw, 3.4rem);
+    font-weight: 800;
+    color: #1f2430;
+    min-width: 3.2ch;
+    text-align: right;
+    transition: color 200ms ease;
+}
+.disp-timer.timer-warning { color: #a15c00; }
+.disp-timer.timer-danger { color: #d9342b; }
+
+.disp-question-stage {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 130px 64px 64px;
+}
+.disp-question-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    background: #fff;
+}
+
+/* TIME'S UP overlay: dims the question slightly, never hides it, and the
+   banner itself stays fully legible -- only a very subtle pulse. */
+.disp-timeup-overlay {
+    position: absolute; inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(20, 20, 25, 0.35);
+    pointer-events: none;
+}
+.disp-timeup-overlay.is-visible { display: flex; }
+.disp-timeup-banner {
+    background: #d9342b;
+    color: #fff;
+    font-size: clamp(2.6rem, 6vw, 5.5rem);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    padding: 18px 56px;
+    border-radius: 14px;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.35);
+    animation: disp-timeup-pulse 2s ease-in-out infinite;
+}
+@keyframes disp-timeup-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.88; } }
+
+/* ============== RANKING ============== */
+.disp-ranking { background: linear-gradient(160deg, var(--disp-dark-1), var(--disp-dark-2)); }
+.disp-ranking-title {
+    font-size: clamp(1.6rem, 3vw, 2.6rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #cdd4e6;
+    margin: 0 0 32px;
+}
+.disp-ranking-list {
+    width: min(78vw, 1100px);
+    max-height: 72vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.disp-rank-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 16px 28px;
+    border-left: 6px solid rgba(255,255,255,0.15);
+}
+.disp-rank-row.rank-1 { border-left-color: var(--disp-gold); }
+.disp-rank-row.rank-2 { border-left-color: var(--disp-silver); }
+.disp-rank-row.rank-3 { border-left-color: var(--disp-bronze); }
+.disp-rank-number { font-size: clamp(1.4rem, 2.2vw, 2rem); font-weight: 800; width: 2.2ch; color: #cdd4e6; }
+.disp-rank-name { flex: 1 1 auto; font-size: clamp(1.2rem, 2vw, 1.8rem); font-weight: 700; }
+.disp-rank-score { font-size: clamp(1.2rem, 2vw, 1.8rem); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ============== FINAL RESULTS ============== */
+.disp-final { background: radial-gradient(circle at 50% 0%, #1c2745, var(--disp-dark-1) 70%); padding: 40px 0; overflow-y: auto; }
+.disp-final-header { text-align: center; margin-bottom: 18px; }
+.disp-final-logo { max-width: 120px; max-height: 90px; object-fit: contain; margin-bottom: 8px; }
+.disp-final-eyebrow { font-size: clamp(1rem, 1.6vw, 1.3rem); text-transform: uppercase; letter-spacing: 0.08em; color: var(--disp-gold); margin: 0; }
+.disp-final-event-name { font-size: clamp(1.4rem, 2.6vw, 2.2rem); font-weight: 700; margin: 4px 0 0; color: #cdd4e6; }
+
+.disp-champion {
+    text-align: center;
+    margin: 18px 0 32px;
+}
+.disp-champion-label { font-size: clamp(0.95rem, 1.4vw, 1.2rem); text-transform: uppercase; letter-spacing: 0.06em; color: #cdd4e6; margin-bottom: 8px; }
+.disp-champion-names { font-size: clamp(2rem, 4.4vw, 3.6rem); font-weight: 800; color: var(--disp-gold); text-shadow: 0 2px 30px rgba(232,185,58,0.35); }
+.disp-champion-score { font-size: clamp(1.2rem, 2vw, 1.6rem); color: #fff; margin-top: 6px; font-weight: 700; }
+
+.disp-final-list { width: min(70vw, 900px); max-height: 44vh; margin: 0 auto; }
+
+/* ============== Fullscreen control ============== */
+.disp-fullscreen-btn {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.55);
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: opacity 200ms ease, background 150ms ease;
+    z-index: 10;
+}
+.disp-fullscreen-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
+
+/* ============== PROMOTIONAL ============== */
+.disp-promo {
+    background: linear-gradient(160deg, var(--disp-dark-1), var(--disp-dark-2));
+    padding: 40px;
+}
+.disp-promo-content {
+    text-align: center;
+    max-width: 90vw;
+}
+.disp-promo-image {
+    max-width: 100%;
+    max-height: 75vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 10px 60px rgba(0,0,0,0.5);
+}
+.disp-promo-description {
+    margin-top: 24px;
+    font-size: clamp(1.2rem, 2.5vw, 2rem);
+    color: #cdd4e6;
+    max-width: 800px;
+    line-height: 1.5;
+}
+
+/* ============== ANSWER ============== */
+.disp-answer {
+    background: #f4f5f7;
+}
+.disp-answer-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 60px;
+}
+.disp-answer-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+}
+
+/* ============== HIDDEN OVERLAY ============== */
+.disp-hidden-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11, 18, 36, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.disp-hidden-text {
+    font-size: clamp(2rem, 5vw, 4rem);
+    font-weight: 700;
+    color: #cdd4e6;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    animation: disp-hidden-pulse 2s ease-in-out infinite;
+}
+@keyframes disp-hidden-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* ============== TIMES UP IMAGE ============== */
+.disp-timeup-image {
+    max-width: 80%;
+    max-height: 80%;
+    object-fit: contain;
+}
