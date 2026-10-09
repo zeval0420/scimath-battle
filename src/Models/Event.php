@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../config/constants.php';
 
 class Event extends Model
 {
-    protected static string $table = 'events';
+    protected static string $table = 'scimath_events';
 
     protected static array $fillable = [
         'name', 'subtitle', 'logo_path', 'cover_image_path', 'event_date', 'status',

@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../config/constants.php';
 
 class ScoreEntry extends Model
 {
-    protected static string $table = 'score_entries';
+    protected static string $table = 'scimath_score_entries';
 
     protected static array $fillable = [
         'event_id', 'question_id', 'contestant_id', 'result', 'points_awarded', 'scored_by',
@@ -37,17 +37,17 @@ class ScoreEntry extends Model
      */
     public static function detailedForEvent(int $eventId, ?int $questionId = null): array
     {
-        $sql = <<<SQL
-            SELECT
-                se.id, se.question_id, se.contestant_id, se.result, se.points_awarded,
-                se.scored_by, se.scored_at, se.updated_at,
-                q.question_number,
-                c.name AS contestant_name, c.team_code
-            FROM score_entries se
-            JOIN questions q ON q.id = se.question_id
-            JOIN contestants c ON c.id = se.contestant_id
-            WHERE se.event_id = :event_id
-        SQL;
+$sql = <<<SQL
+             SELECT
+                 se.id, se.question_id, se.contestant_id, se.result, se.points_awarded,
+                 se.scored_by, se.scored_at, se.updated_at,
+                 q.question_number,
+                 c.name AS contestant_name, c.team_code
+             FROM scimath_score_entries se
+             JOIN scimath_questions q ON q.id = se.question_id
+             JOIN scimath_contestants c ON c.id = se.contestant_id
+             WHERE se.event_id = :event_id
+         SQL;
 
         $params = ['event_id' => $eventId];
         if ($questionId !== null) {
@@ -125,9 +125,9 @@ class ScoreEntry extends Model
     ): array {
         $db = self::db();
 
-        $stmt = $db->prepare(
-            'SELECT * FROM score_entries WHERE question_id = :question_id AND contestant_id = :contestant_id FOR UPDATE'
-        );
+$stmt = $db->prepare(
+             'SELECT * FROM scimath_score_entries WHERE question_id = :question_id AND contestant_id = :contestant_id FOR UPDATE'
+         );
         $stmt->execute(['question_id' => $questionId, 'contestant_id' => $contestantId]);
         $existing = $stmt->fetch();
         $existing = $existing === false ? null : $existing;
@@ -220,23 +220,23 @@ class ScoreEntry extends Model
             ? 'ASC'
             : 'DESC';
 
-        $sql = <<<SQL
-            SELECT
-                c.id            AS contestant_id,
-                c.name          AS name,
-                c.team_code     AS team_code,
-                c.acronym       AS acronym,
-                c.logo_path     AS logo_path,
-                c.starting_score
-                    + COALESCE(SUM(se.points_awarded), 0) AS total_score
-            FROM contestants c
-            LEFT JOIN score_entries se
-                ON se.contestant_id = c.id AND se.event_id = c.event_id
-            WHERE c.event_id = :event_id
-              AND c.is_active = 1
-            GROUP BY c.id, c.name, c.team_code, c.acronym, c.logo_path, c.starting_score
-            ORDER BY total_score {$direction}, c.display_order ASC
-        SQL;
+$sql = <<<SQL
+             SELECT
+                 c.id            AS contestant_id,
+                 c.name          AS name,
+                 c.team_code     AS team_code,
+                 c.acronym       AS acronym,
+                 c.logo_path     AS logo_path,
+                 c.starting_score
+                     + COALESCE(SUM(se.points_awarded), 0) AS total_score
+             FROM scimath_contestants c
+             LEFT JOIN scimath_score_entries se
+                 ON se.contestant_id = c.id AND se.event_id = c.event_id
+             WHERE c.event_id = :event_id
+               AND c.is_active = 1
+             GROUP BY c.id, c.name, c.team_code, c.acronym, c.logo_path, c.starting_score
+             ORDER BY total_score {$direction}, c.display_order ASC
+         SQL;
 
         $stmt = self::db()->prepare($sql);
         $stmt->execute(['event_id' => $eventId]);

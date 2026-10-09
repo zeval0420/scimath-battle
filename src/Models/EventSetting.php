@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class EventSetting extends Model
 {
-    protected static string $table = 'event_settings';
+    protected static string $table = 'scimath_event_settings';
 
     protected static array $fillable = [
         'event_id', 'default_points', 'default_time_seconds', 'ranking_order',

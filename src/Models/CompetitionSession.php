@@ -21,7 +21,7 @@ require_once __DIR__ . '/../../config/constants.php';
  */
 class CompetitionSession extends Model
 {
-    protected static string $table = 'competition_sessions';
+    protected static string $table = 'scimath_competition_sessions';
 
     protected static array $fillable = [
         'event_id', 'current_question_id', 'current_round', 'round_started_at',
@@ -59,7 +59,7 @@ class CompetitionSession extends Model
      */
     public static function lockForEvent(int $eventId): ?array
     {
-        $stmt = self::db()->prepare('SELECT * FROM competition_sessions WHERE event_id = :event_id FOR UPDATE');
+        $stmt = self::db()->prepare('SELECT * FROM scimath_competition_sessions WHERE event_id = :event_id FOR UPDATE');
         $stmt->execute(['event_id' => $eventId]);
         $row = $stmt->fetch();
 

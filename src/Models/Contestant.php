@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Contestant extends Model
 {
-    protected static string $table = 'contestants';
+    protected static string $table = 'scimath_contestants';
 
     protected static array $fillable = [
         'event_id', 'name', 'team_code', 'acronym', 'organization', 'logo_path',

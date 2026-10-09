@@ -9,7 +9,7 @@ require_once __DIR__ . '/Model.php';
  */
 class ScoreAdjustment extends Model
 {
-    protected static string $table = 'score_adjustments';
+    protected static string $table = 'scimath_score_adjustments';
 
     protected static array $fillable = [
         'score_entry_id', 'previous_result', 'previous_points',

@@ -4,7 +4,7 @@ require_once __DIR__ . '/Model.php';
 
 class Question extends Model
 {
-    protected static string $table = 'questions';
+    protected static string $table = 'scimath_questions';
 
     protected static array $fillable = [
         'event_id', 'category_id', 'question_number', 'image_path', 'answer_image_path',
@@ -48,10 +48,10 @@ class Question extends Model
 
     public static function nextQuestionNumber(int $eventId): int
     {
-        $stmt = self::db()->prepare(
-            'SELECT COALESCE(MAX(question_number), 0) + 1 AS next_number
-             FROM questions WHERE event_id = :event_id'
-        );
+$stmt = self::db()->prepare(
+             'SELECT COALESCE(MAX(question_number), 0) + 1 AS next_number
+              FROM scimath_questions WHERE event_id = :event_id'
+         );
         $stmt->execute(['event_id' => $eventId]);
 
         return (int) $stmt->fetch()['next_number'];
