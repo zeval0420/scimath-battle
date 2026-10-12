@@ -43,6 +43,11 @@ if ($rawCategoryId !== '') {
     }
 }
 
+$round = (string) ($_POST['round'] ?? Round::EASY);
+if (!in_array($round, Round::ALL, true)) {
+    $v->addError('round', 'Round must be one of: ' . implode(', ', Round::ALL) . '.');
+}
+
 // Image is required when creating a new question; optional (replace) when editing.
 $hasNewImage = isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE;
 if ($existing === null && !$hasNewImage) {
@@ -59,6 +64,7 @@ if ($v->hasErrors()) {
 $attributes = [
     'question_number' => $questionNumber,
     'category_id'      => $categoryId,
+    'round'            => $round,
     'points'           => $points,
     'time_seconds'     => $timeSeconds,
 ];

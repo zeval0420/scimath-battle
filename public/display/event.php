@@ -47,7 +47,10 @@ $audioConfig = EventSetting::audioConfig($settings ?? []);
     <!-- QUESTION -->
     <section class="disp-state disp-question" data-state-section="question">
         <div class="disp-question-topbar">
-            <div class="disp-question-category" id="disp-q-category"></div>
+            <div class="disp-question-left">
+                <div class="disp-question-category" id="disp-q-category"></div>
+                <div class="disp-question-round" id="disp-q-round"></div>
+            </div>
             <div class="disp-question-number" id="disp-q-number"></div>
             <div class="disp-timer" id="disp-timer">--:--</div>
         </div>
@@ -63,10 +66,20 @@ $audioConfig = EventSetting::audioConfig($settings ?? []);
         </div>
     </section>
 
-    <!-- RANKING -->
+    <!-- FINAL RANKINGS (cumulative breakdown, all rounds) -->
     <section class="disp-state disp-ranking" data-state-section="ranking">
-        <h2 class="disp-ranking-title">Current Standings</h2>
-        <div class="disp-ranking-list" id="disp-ranking-list"></div>
+        <h2 class="disp-ranking-title" id="disp-ranking-title">Final Rankings</h2>
+        <div class="disp-breakdown-wrap">
+            <div class="disp-breakdown" id="disp-ranking-breakdown"></div>
+        </div>
+    </section>
+
+    <!-- ROUND RANKINGS (breakdown for a single round) -->
+    <section class="disp-state disp-ranking" data-state-section="round_ranking">
+        <h2 class="disp-ranking-title" id="disp-round-ranking-title">Round Rankings</h2>
+        <div class="disp-breakdown-wrap">
+            <div class="disp-breakdown" id="disp-round-ranking-breakdown"></div>
+        </div>
     </section>
 
     <!-- FINAL RESULTS -->

@@ -49,6 +49,7 @@ $attributes = [
 if ($existing !== null) {
     $attributes['is_active'] = isset($_POST['is_active']) ? 1 : 0;
 }
+$attributes['is_clincher'] = isset($_POST['is_clincher']) ? 1 : 0;
 
 try {
     if (!empty($_POST['remove_logo']) && $existing !== null) {

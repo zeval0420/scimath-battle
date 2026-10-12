@@ -90,6 +90,27 @@ html, body {
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
+.disp-question-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.disp-question-round {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: clamp(0.85rem, 1.1vw, 1.05rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(0, 0, 0, 0.08);
+    color: #4b5563;
+}
+.disp-question-round.round-easy     { background: rgba(34, 197, 94, 0.15);  color: #15803d; }
+.disp-question-round.round-medium   { background: rgba(234, 179, 8, 0.18);  color: #a16207; }
+.disp-question-round.round-hard     { background: rgba(239, 68, 68, 0.15);  color: #b91c1c; }
+.disp-question-round.round-clincher { background: rgba(139, 92, 246, 0.16); color: #6d28d9; }
 .disp-question-number {
     font-size: clamp(1.1rem, 1.8vw, 1.6rem);
     font-weight: 700;
@@ -184,6 +205,96 @@ html, body {
 .disp-rank-number { font-size: clamp(1.4rem, 2.2vw, 2rem); font-weight: 800; width: 2.2ch; color: #cdd4e6; }
 .disp-rank-name { flex: 1 1 auto; font-size: clamp(1.2rem, 2vw, 1.8rem); font-weight: 700; }
 .disp-rank-score { font-size: clamp(1.2rem, 2vw, 1.8rem); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ---- Ranking breakdown table ---- */
+.disp-breakdown-wrap {
+    width: min(94vw, 1500px);
+    max-height: 74vh;
+    overflow: auto;
+    border-radius: 12px;
+}
+.disp-breakdown-empty {
+    text-align: center;
+    color: #cdd4e6;
+    font-size: clamp(1.1rem, 2vw, 1.6rem);
+}
+.disp-breakdown-table {
+    border-collapse: separate;
+    border-spacing: 4px;
+    margin: 0 auto;
+    font-variant-numeric: tabular-nums;
+}
+.disp-breakdown-table th,
+.disp-breakdown-table td {
+    padding: 8px 14px;
+    text-align: center;
+    white-space: nowrap;
+}
+.disp-breakdown-table thead th {
+    color: #cdd4e6;
+    font-weight: 700;
+}
+.disp-bd-group {
+    font-size: clamp(0.85rem, 1.3vw, 1.1rem);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--disp-accent);
+    border-bottom: 2px solid rgba(255,255,255,0.12);
+}
+.disp-bd-q {
+    font-size: clamp(0.8rem, 1.1vw, 1rem);
+    font-weight: 600;
+    color: #8b93a8;
+}
+/* Sticky header + first column so long tables stay readable while scrolling.
+   The group-label row and the Q-number row stick at stacked offsets so both
+   stay visible; the shared top padding keeps the offsets in sync. */
+.disp-breakdown-table thead th {
+    position: sticky;
+    background: var(--disp-dark-2);
+}
+.disp-breakdown-table thead tr:nth-child(1) th { top: 0; z-index: 3; }
+.disp-breakdown-table thead tr:nth-child(2) th { top: 2.35rem; z-index: 2; }
+.disp-breakdown-table tbody .disp-bd-name {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--disp-dark-1);
+}
+.disp-bd-name {
+    text-align: left;
+    font-size: clamp(0.95rem, 1.5vw, 1.3rem);
+    font-weight: 700;
+    color: #fff;
+}
+.disp-bd-rank {
+    display: inline-block;
+    min-width: 1.6ch;
+    margin-right: 12px;
+    color: #8b93a8;
+    font-weight: 800;
+}
+.disp-breakdown-table tbody tr {
+    background: rgba(255,255,255,0.05);
+}
+.disp-breakdown-table tbody tr.rank-1 { background: rgba(232,185,58,0.16); }
+.disp-breakdown-table tbody tr.rank-2 { background: rgba(184,191,201,0.14); }
+.disp-breakdown-table tbody tr.rank-3 { background: rgba(193,121,63,0.16); }
+.disp-breakdown-table tbody tr.rank-1 .disp-bd-name { background: #2a2410; }
+.disp-breakdown-table tbody tr.rank-2 .disp-bd-name { background: #23262b; }
+.disp-breakdown-table tbody tr.rank-3 .disp-bd-name { background: #2a1d12; }
+.disp-bd-cell {
+    font-size: clamp(0.95rem, 1.4vw, 1.25rem);
+    color: #dfe4ef;
+}
+.disp-bd-total {
+    font-size: clamp(1rem, 1.6vw, 1.4rem);
+    font-weight: 800;
+    color: #fff;
+    border-left: 2px solid rgba(255,255,255,0.12);
+}
+.disp-breakdown-table tbody tr.rank-1 .disp-bd-total { color: var(--disp-gold); }
+
 
 /* ============== FINAL RESULTS ============== */
 .disp-final { background: radial-gradient(circle at 50% 0%, #1c2745, var(--disp-dark-1) 70%); padding: 40px 0; overflow-y: auto; }

@@ -7,6 +7,7 @@
     var eventId = root.getAttribute('data-event-id');
     var csrfToken = root.getAttribute('data-csrf');
     var dashboard = JSON.parse(root.getAttribute('data-initial'));
+    var allQuestions = JSON.parse(root.getAttribute('data-questions') || '[]');
 
     var POLL_MS = 1000;
     var pollTimer = null;
@@ -115,11 +116,12 @@
         // Progress line
         document.getElementById('op-progress').textContent =
             (state.is_active ? 'Active' : 'Not started') +
+            (state.current_round ? ' · ' + roundLabel(state.current_round) + ' round' : '') +
             (progress.position ? ' — Question ' + progress.position + ' of ' + progress.total : ' — ' + progress.total + ' question(s) configured');
 
         // Public display state banner
         var stateBanner = document.getElementById('op-display-state');
-        var stateLabels = { cover: 'Cover', question: 'Question', time_up: "Time's Up", ranking: 'Ranking', final_results: 'Final Results' };
+        var stateLabels = { cover: 'Cover', question: 'Question', time_up: "Time's Up", ranking: 'Final Rankings', round_ranking: 'Round Rankings', final_results: 'Final Results', promotional: 'Promotional', answer: 'Answer', hidden: 'Hidden' };
         stateBanner.className = 'op-display-state state-' + state.display_state;
         document.getElementById('op-display-state-text').textContent = stateLabels[state.display_state] || state.display_state;
 
@@ -168,180 +170,115 @@
 
         // Ranking controls
         document.getElementById('op-btn-show-ranking').disabled = !state.is_active;
+        document.getElementById('op-btn-show-round-ranking').disabled = !state.is_active;
         document.getElementById('op-btn-return-to-question').disabled = !state.is_active || q === null;
-        document.getElementById('op-btn-show-final').disabled = !state.is_active;
         document.getElementById('op-btn-return-to-cover').disabled = !state.is_active;
+        var rankRoundSelect = document.getElementById('op-rank-round-select');
+        if (rankRoundSelect) {
+            rankRoundSelect.disabled = !state.is_active;
+            if (state.ranking_round) rankRoundSelect.value = state.ranking_round;
+        }
         document.getElementById('op-auto-rank-hint').style.display = state.auto_show_ranking_after_score ? '' : 'none';
-
-        // Question controls
-        document.getElementById('op-btn-hide-question').disabled = !state.is_active || q === null;
-        document.getElementById('op-btn-show-question').disabled = !state.is_active;
-        document.getElementById('op-btn-preview-next').disabled = !state.is_active;
 
         // Round controls
         document.getElementById('op-btn-start-round').disabled = !state.is_active;
         document.getElementById('op-btn-end-round').disabled = !state.is_active;
-
-        // Next preview
-        renderNextPreview(state, allQuestions);
-
-        // Score entry
-        renderScores(q, state.is_active);
-
-        // Rankings
-        renderRankings();
-    }
-
-    function renderNextPreview(state, questions) {
-        var nextQ = null;
-        if (state.current_question) {
-            var currentId = state.current_question.id;
-            for (var i = 0; i < questions.length; i++) {
-                if (questions[i].id === currentId && i < questions.length - 1) {
-                    nextQ = questions[i + 1];
-                    break;
-                }
-            }
-        } else if (questions.length > 0) {
-            nextQ = questions[0];
+        var roundSelect = document.getElementById('op-round-select');
+        if (roundSelect) {
+            roundSelect.disabled = !state.is_active;
+            if (state.current_round) roundSelect.value = state.current_round;
         }
 
-        var img = document.getElementById('op-next-image');
-        var none = document.getElementById('op-next-none');
-        if (nextQ) {
-            img.src = '../' + nextQ.image_path;
+        // Slide preview strip + hide/show override toggle
+        renderSlidePreview(state);
+        renderQuestionToggle(state, q);
+    }
+
+    function renderSlidePreview(state) {
+        var current = state.current_question;
+        setSlideThumb(
+            'op-current-thumb', 'op-current-thumb-empty', 'op-current-thumb-caption',
+            current, current ? questionCaption(current) : 'No question'
+        );
+
+        var nextQ = findNextQuestion(state);
+        setSlideThumb(
+            'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
+            nextQ, nextQ ? questionCaption(nextQ) : 'No next question'
+        );
+    }
+
+    function findNextQuestion(state) {
+        var current = state.current_question;
+        if (!current) {
+            return allQuestions[0] || null;
+        }
+        for (var i = 0; i < allQuestions.length; i++) {
+            if (String(allQuestions[i].id) === String(current.id) && i < allQuestions.length - 1) {
+                return allQuestions[i + 1];
+            }
+        }
+        return null;
+    }
+
+    function questionCaption(q) {
+        return 'Q' + q.question_number + (q.round ? ' · ' + roundLabel(q.round) : '');
+    }
+
+    function setSlideThumb(imgId, emptyId, captionId, q, captionText) {
+        var img = document.getElementById(imgId);
+        var empty = document.getElementById(emptyId);
+        var caption = document.getElementById(captionId);
+        if (caption) caption.textContent = captionText;
+        if (!img || !empty) return;
+
+        if (q && q.image_path) {
+            img.src = '../' + q.image_path;
             img.style.display = '';
-            none.style.display = 'none';
+            empty.style.display = 'none';
         } else {
+            img.removeAttribute('src');
             img.style.display = 'none';
-            none.style.display = '';
+            empty.style.display = '';
         }
     }
 
-    function renderScores(q, isActive) {
-        var container = document.getElementById('op-score-list');
-        var noneMsg = document.getElementById('op-score-none');
+    function renderQuestionToggle(state, q) {
+        var toggle = document.getElementById('op-toggle-question');
+        if (!toggle) return;
 
-        document.getElementById('op-score-q-number').textContent = q ? ('Q' + q.question_number) : '—';
-        document.getElementById('op-score-q-points').textContent = q ? q.points : '—';
+        var shown = state.display_state === 'question' || state.display_state === 'time_up';
+        toggle.checked = shown;
+        toggle.disabled = !state.is_active || q === null;
 
-        if (!q) {
-            container.innerHTML = '';
-            noneMsg.style.display = '';
-            return;
-        }
-        noneMsg.style.display = 'none';
-
-        var scoresByContestant = {};
-        (dashboard.current_question_scores || []).forEach(function (s) {
-            scoresByContestant[s.contestant_id] = s;
-        });
-        var totalsByContestant = {};
-        (dashboard.rankings || []).forEach(function (r) {
-            totalsByContestant[r.contestant_id] = r.total_score;
-        });
-
-        var rows = (dashboard.rankings || []).slice().sort(function (a, b) {
-            return a.contestant_id - b.contestant_id; // stable order for scoring (not rank order, which reshuffles)
-        });
-
-        container.innerHTML = rows.map(function (r) {
-            var existing = scoresByContestant[r.contestant_id];
-            var total = totalsByContestant[r.contestant_id] !== undefined ? totalsByContestant[r.contestant_id] : 0;
-
-            function btn(result, label, cls) {
-                var selected = existing && existing.result === result;
-                return '<button type="button" class="op-score-btn ' + cls + (selected ? ' selected' : '') + '" ' +
-                    'data-contestant="' + r.contestant_id + '" data-result="' + result + '" ' +
-                    (isActive ? '' : 'disabled') + '>' + label + '</button>';
-            }
-
-            return '<div class="op-score-row" data-row-contestant="' + r.contestant_id + '">' +
-                '<div class="op-score-name"><span class="name">' + escapeHtml(r.name) + '</span>' +
-                '<span class="total">Total: ' + total + ' pts<span class="op-saved-flash" id="flash-' + r.contestant_id + '">Saved</span></span></div>' +
-                '<div class="op-score-buttons">' +
-                    btn('correct', 'Correct', 'correct') +
-                    btn('incorrect', 'Incorrect', 'incorrect') +
-                    btn('no_answer', 'No Answer', 'no-answer') +
-                '</div></div>';
-        }).join('');
-
-        container.querySelectorAll('.op-score-btn').forEach(function (b) {
-            b.addEventListener('click', onScoreClick);
-        });
+        var stateEl = document.getElementById('op-toggle-question-state');
+        if (stateEl) stateEl.textContent = shown ? 'Shown' : 'Hidden';
     }
 
-    function renderRankings() {
-        var container = document.getElementById('op-rank-list');
-        container.innerHTML = (dashboard.rankings || []).map(function (r) {
-            return '<div class="op-rank-row"><span><span class="op-rank-num">' + r.rank + '</span>' +
-                escapeHtml(r.name) + '</span><span>' + r.total_score + ' pts</span></div>';
-        }).join('');
-    }
-
-    function escapeHtml(s) {
-        var d = document.createElement('div');
-        d.textContent = s;
-        return d.innerHTML;
+    var ROUND_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard', clincher: 'Clincher' };
+    function roundLabel(r) {
+        if (!r) return '';
+        return ROUND_LABELS[r] || (r.charAt(0).toUpperCase() + r.slice(1));
     }
 
     // ---- Event handlers -------------------------------------------------
 
-    function onScoreClick(e) {
-        var btn = e.currentTarget;
-        var contestantId = btn.getAttribute('data-contestant');
-        var result = btn.getAttribute('data-result');
-        var q = dashboard.state.current_question;
-        if (!q) return;
-
-        var existing = (dashboard.current_question_scores || []).find(function (s) {
-            return String(s.contestant_id) === String(contestantId);
-        });
-
-        // Already showing this exact result -- nothing to do, and avoids a
-        // pointless network round trip on a redundant click.
-        if (existing && existing.result === result) return;
-
-        // Changing an already-recorded result is a correction -- make it
-        // deliberate with a confirmation, per spec.
-        if (existing) {
-            var labels = { correct: 'Correct', incorrect: 'Incorrect', no_answer: 'No Answer' };
-            var ok = confirm('Change this score from ' + labels[existing.result] + ' to ' + labels[result] + '?');
-            if (!ok) return;
-        }
-
-        doAction('score', {
-            question_id: q.id,
-            contestant_id: contestantId,
-            result: result
-        }, btn).then(function () {
-            var flash = document.getElementById('flash-' + contestantId);
-            if (flash) {
-                flash.classList.add('show');
-                setTimeout(function () { flash.classList.remove('show'); }, 1500);
-            }
-        });
-    }
-
-    function confirmAndAct(action, message, triggerEl) {
-        if (message && !confirm(message)) return;
-        doAction(action, {}, triggerEl);
-    }
-
     document.getElementById('op-btn-start-event').addEventListener('click', function (e) {
-        confirmAndAct('start_event', null, e.currentTarget);
+        doAction('start_event', {}, e.currentTarget);
     });
     document.getElementById('op-btn-end-event').addEventListener('click', function (e) {
-        confirmAndAct('end_event', 'End the competition? This shows final results and locks normal navigation.', e.currentTarget);
+        if (confirm('End the competition? This shows final results and locks normal navigation.')) {
+            doAction('end_event', {}, e.currentTarget);
+        }
     });
     document.getElementById('op-btn-start-first').addEventListener('click', function (e) {
-        confirmAndAct('start_first_question', null, e.currentTarget);
+        doAction('start_first_question', {}, e.currentTarget);
     });
     document.getElementById('op-btn-prev').addEventListener('click', function (e) {
-        confirmAndAct('previous_question', null, e.currentTarget);
+        doAction('previous_question', {}, e.currentTarget);
     });
     document.getElementById('op-btn-next').addEventListener('click', function (e) {
-        confirmAndAct('next_question', null, e.currentTarget);
+        doAction('next_question', {}, e.currentTarget);
     });
     document.getElementById('op-goto-select').addEventListener('change', function (e) {
         var id = e.currentTarget.value;
@@ -359,38 +296,33 @@
         doAction('resume_timer', {}, e.currentTarget);
     });
     document.getElementById('op-btn-timer-reset').addEventListener('click', function (e) {
-        confirmAndAct('reset_timer', 'Reset the timer back to the full time limit for this question?', e.currentTarget);
+        doAction('reset_timer', {}, e.currentTarget);
     });
 
     document.getElementById('op-btn-show-ranking').addEventListener('click', function (e) {
         doAction('show_ranking', {}, e.currentTarget);
     });
+    document.getElementById('op-btn-show-round-ranking').addEventListener('click', function (e) {
+        var round = document.getElementById('op-rank-round-select').value;
+        doAction('show_round_ranking', { round: round }, e.currentTarget);
+    });
     document.getElementById('op-btn-return-to-question').addEventListener('click', function (e) {
         doAction('return_to_question', {}, e.currentTarget);
     });
-    document.getElementById('op-btn-show-final').addEventListener('click', function (e) {
-        confirmAndAct('show_final_results', 'Show final results on the public display?', e.currentTarget);
-    });
     document.getElementById('op-btn-return-to-cover').addEventListener('click', function (e) {
-        confirmAndAct('return_to_cover', 'Return the public display to the cover screen? (This only changes what is shown -- no scores or progress are affected.)', e.currentTarget);
+        doAction('return_to_cover', {}, e.currentTarget);
     });
 
-    // Question controls
-    document.getElementById('op-btn-hide-question').addEventListener('click', function (e) {
-        doAction('hide_question', {}, e.currentTarget);
-    });
-    document.getElementById('op-btn-show-question').addEventListener('click', function (e) {
-        doAction('show_question', {}, e.currentTarget);
-    });
-    document.getElementById('op-btn-preview-next').addEventListener('click', function (e) {
-        doAction('preview_next', {}, e.currentTarget).then(function() {
-            // Preview is handled in renderNextPreview via state update
-        });
+    // Question show/hide override toggle
+    document.getElementById('op-toggle-question').addEventListener('change', function (e) {
+        var show = e.currentTarget.checked;
+        doAction(show ? 'show_question' : 'hide_question', {}, e.currentTarget);
     });
 
     // Round controls
     document.getElementById('op-btn-start-round').addEventListener('click', function (e) {
-        doAction('start_round', {}, e.currentTarget);
+        var round = document.getElementById('op-round-select').value;
+        doAction('start_round', { round: round }, e.currentTarget);
     });
     document.getElementById('op-btn-end-round').addEventListener('click', function (e) {
         doAction('end_round', {}, e.currentTarget);
@@ -410,6 +342,92 @@
         if (id) doAction('show_answer', { slide_id: id }, null);
     });
 
+    // ---- Component visibility menu ---------------------------------------
+
+    var COMPONENT_STORAGE_KEY = 'op-components:' + eventId;
+
+    function loadHiddenComponents() {
+        try {
+            var raw = window.localStorage.getItem(COMPONENT_STORAGE_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function saveHiddenComponents(hidden) {
+        try {
+            window.localStorage.setItem(COMPONENT_STORAGE_KEY, JSON.stringify(hidden));
+        } catch (err) { /* storage unavailable -- visibility just won't persist */ }
+    }
+
+    function setupComponentsMenu() {
+        var button = document.getElementById('op-btn-components');
+        var menu = document.getElementById('op-components-menu');
+        var list = document.getElementById('op-components-list');
+        if (!button || !menu || !list) return;
+
+        var panels = Array.prototype.slice.call(
+            document.querySelectorAll('.op-panel[data-op-component]')
+        );
+        var hidden = loadHiddenComponents();
+
+        list.innerHTML = '';
+        panels.forEach(function (panel) {
+            var id = panel.getAttribute('data-op-component');
+            var titleEl = panel.querySelector('h2');
+            var label = titleEl ? titleEl.textContent.trim() : id;
+
+            var isHidden = hidden.indexOf(id) !== -1;
+            panel.style.display = isHidden ? 'none' : '';
+
+            var row = document.createElement('label');
+            row.className = 'op-components-item';
+
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = !isHidden;
+
+            checkbox.addEventListener('change', function () {
+                var off = !checkbox.checked;
+                panel.style.display = off ? 'none' : '';
+
+                var idx = hidden.indexOf(id);
+                if (off && idx === -1) hidden.push(id);
+                if (!off && idx !== -1) hidden.splice(idx, 1);
+                saveHiddenComponents(hidden);
+            });
+
+            var text = document.createElement('span');
+            text.textContent = label;
+
+            row.appendChild(checkbox);
+            row.appendChild(text);
+            list.appendChild(row);
+        });
+
+        function closeMenu() {
+            menu.hidden = true;
+            button.setAttribute('aria-expanded', 'false');
+        }
+        function openMenu() {
+            menu.hidden = false;
+            button.setAttribute('aria-expanded', 'true');
+        }
+
+        button.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (menu.hidden) { openMenu(); } else { closeMenu(); }
+        });
+        menu.addEventListener('click', function (e) { e.stopPropagation(); });
+        document.addEventListener('click', function () {
+            if (!menu.hidden) closeMenu();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !menu.hidden) closeMenu();
+        });
+    }
+
     // ---- Polling ----------------------------------------------------------
 
     function startPolling() {
@@ -419,6 +437,7 @@
         }, POLL_MS);
     }
 
+    setupComponentsMenu();
     render();
     startPolling();
 })();

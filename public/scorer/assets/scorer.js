@@ -6,10 +6,21 @@
 
     var eventId = root.getAttribute('data-event-id');
     var csrfToken = root.getAttribute('data-csrf');
-    var dashboard = JSON.parse(root.getAttribute('data-initial'));
-    var POLL_MS = parseInt(root.getAttribute('data-poll-ms')) || 1000;
+    var initial = JSON.parse(root.getAttribute('data-initial'));
+    var POLL_MS = parseInt(root.getAttribute('data-poll-ms'), 10) || 3000;
+
     var pollTimer = null;
     var actionInFlight = false;
+
+    var state = {
+        selectedQuestionId: initial.selected_question_id,
+        questions: initial.questions || [],
+        contestants: initial.contestants || [],
+        cells: initial.cells || {},
+        ranks: initial.ranks || {},
+        totals: initial.totals || {},
+        question_sums: initial.question_sums || {}
+    };
 
     // ---- API helpers --------------------------------------------------
     function apiGet(action, params) {
@@ -30,297 +41,373 @@
         }).then(function (r) { return r.json(); });
     }
 
-    function doAction(action, params, triggerEl) {
-        if (actionInFlight) return Promise.resolve();
+    function refresh() {
+        return apiGet('report').then(function (res) {
+            if (res.ok && res.report) {
+                applyReport(res.report);
+            }
+        }).catch(function () {});
+    }
+
+    function applyReport(report) {
+        state.cells = report.cells || {};
+        state.ranks = report.ranks || {};
+        state.totals = report.totals || {};
+        state.question_sums = report.question_sums || {};
+        render();
+    }
+
+    // ---- State helpers --------------------------------------------------
+    function cell(contestantId, questionId) {
+        var byContestant = state.cells[String(contestantId)];
+        if (!byContestant) return null;
+        return byContestant[String(questionId)] || null;
+    }
+
+    function total(contestantId) {
+        var t = state.totals[String(contestantId)];
+        if (t !== undefined) return t;
+        var c = findContestant(contestantId);
+        return c ? c.starting_score : 0;
+    }
+
+    function rank(contestantId) {
+        var r = state.ranks[String(contestantId)];
+        return r === undefined ? null : r;
+    }
+
+    function findContestant(id) {
+        for (var i = 0; i < state.contestants.length; i++) {
+            if (String(state.contestants[i].id) === String(id)) return state.contestants[i];
+        }
+        return null;
+    }
+
+    function contestantLabel(c) {
+        if (!c) return '—';
+        return c.name;
+    }
+
+    function tag(c) {
+        if (!c) return '?';
+        return c.acronym || c.team_code || '?';
+    }
+
+    var ROUND_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard', clincher: 'Clincher' };
+    function roundLabel(r) {
+        if (!r) return '';
+        return ROUND_LABELS[r] || (r.charAt(0).toUpperCase() + r.slice(1));
+    }
+
+    // In the clincher round only the manually selected teams take part, so
+    // the marking panel is limited to those teams. Other rounds include
+    // every active contestant.
+    function contestantsForQuestion(q) {
+        if (q && q.round === 'clincher') {
+            return state.contestants.filter(function (c) { return !!c.is_clincher; });
+        }
+        return state.contestants;
+    }
+
+    function selectedQuestion() {
+        var id = state.selectedQuestionId;
+        for (var i = 0; i < state.questions.length; i++) {
+            if (String(state.questions[i].id) === String(id)) return state.questions[i];
+        }
+        return null;
+    }
+
+    function escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        var d = document.createElement('div');
+        d.textContent = String(value);
+        return d.innerHTML;
+    }
+
+    // ---- Rendering --------------------------------------------------
+    function render() {
+        renderItemSummary();
+        renderQuickScore();
+        renderScoreboard();
+        renderMatrix();
+        renderStats();
+    }
+
+    function renderItemSummary() {
+        var el = document.getElementById('scorer-item-summary');
+        var badge = document.getElementById('scorer-round-badge');
+        var q = selectedQuestion();
+        var refPoints = document.getElementById('ref-points');
+
+        document.getElementById('ref-contestants').textContent = state.contestants.length;
+        document.getElementById('ref-questions').textContent = state.questions.length;
+
+        if (badge) {
+            if (q) {
+                badge.textContent = roundLabel(q.round) + ' Round';
+                badge.className = 'scorer-round-badge round-' + q.round;
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        if (!q) {
+            el.textContent = state.questions.length === 0
+                ? 'No active questions are configured for this event.'
+                : '';
+            if (refPoints) refPoints.textContent = '—';
+            return;
+        }
+
+        var eligible = contestantsForQuestion(q);
+        var marked = 0;
+        for (var i = 0; i < eligible.length; i++) {
+            if (cell(eligible[i].id, q.id)) marked++;
+        }
+        el.textContent = 'Marked ' + marked + ' of ' + eligible.length
+            + (q.category ? ' · ' + q.category : '');
+        if (refPoints) refPoints.textContent = q.points;
+    }
+
+    function renderQuickScore() {
+        var container = document.getElementById('scorer-quick-score');
+        var q = selectedQuestion();
+
+        if (!q) {
+            container.innerHTML = '<p class="muted">Select an item above to begin marking.</p>';
+            return;
+        }
+        if (state.contestants.length === 0) {
+            container.innerHTML = '<p class="muted">No active contestants are configured for this event.</p>';
+            return;
+        }
+
+        var eligible = contestantsForQuestion(q);
+        var clincherNote = '';
+        if (q.round === 'clincher') {
+            clincherNote = '<p class="scorer-clincher-note">Clincher round — only the ' + eligible.length
+                + ' selected team(s) can be marked.</p>';
+            if (eligible.length === 0) {
+                container.innerHTML = clincherNote
+                    + '<p class="muted">No teams have been selected for the clincher round yet.</p>';
+                return;
+            }
+        }
+
+        container.innerHTML = clincherNote + eligible.map(function (c) {
+            var existing = cell(c.id, q.id);
+            var result = existing ? existing.result : null;
+            var points = existing ? existing.points_awarded : null;
+
+            function btn(value, label, cls) {
+                var selected = result === value;
+                return '<button type="button" class="scorer-quick-btn ' + cls + (selected ? ' selected' : '') + '" '
+                    + 'data-contestant="' + c.id + '" data-result="' + value + '">' + label + '</button>';
+            }
+
+            var pointsLabel = existing
+                ? '<span class="scorer-quick-points">' + points + ' pt' + (points === 1 ? '' : 's') + '</span>'
+                : '<span class="scorer-quick-points muted">unmarked</span>';
+
+            return '<div class="scorer-quick-row" data-contestant="' + c.id + '">'
+                + '<span class="scorer-quick-name"><span class="acronym">' + escapeHtml(tag(c)) + '</span>'
+                + escapeHtml(contestantLabel(c)) + '</span>'
+                + pointsLabel
+                + '<div class="scorer-quick-buttons">'
+                + btn('correct', 'Correct', 'correct')
+                + btn('incorrect', 'Wrong', 'incorrect')
+                + btn('no_answer', 'No Answer', 'no-answer')
+                + '</div>'
+                + '</div>';
+        }).join('');
+
+        container.querySelectorAll('.scorer-quick-btn').forEach(function (b) {
+            b.addEventListener('click', onScoreClick);
+        });
+    }
+
+    function renderScoreboard() {
+        var tbody = document.getElementById('scorer-table-body');
+        if (!tbody) return;
+
+        if (state.contestants.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:24px;">No contestants configured yet.</td></tr>';
+            return;
+        }
+
+        var rows = state.contestants.slice().sort(function (a, b) {
+            return total(b.id) - total(a.id);
+        });
+
+        tbody.innerHTML = rows.map(function (c, idx) {
+            var r = rank(c.id);
+            var rankClass = r === 1 ? ' scorer-row-leader' : '';
+            return '<tr class="' + rankClass + '">'
+                + '<td class="col-rank"><span class="rank-badge">' + (r === null ? idx + 1 : r) + '</span></td>'
+                + '<td class="col-acronym">' + escapeHtml(tag(c)) + '</td>'
+                + '<td class="col-name">' + escapeHtml(contestantLabel(c)) + '</td>'
+                + '<td class="col-total">' + total(c.id) + '</td>'
+                + '</tr>';
+        }).join('');
+    }
+
+    function renderMatrix() {
+        var wrap = document.getElementById('scorer-matrix-wrap');
+        if (!wrap) return;
+
+        if (state.questions.length === 0 || state.contestants.length === 0) {
+            wrap.innerHTML = '<p class="muted">This event needs at least one active contestant and one active question to show a score table.</p>';
+            return;
+        }
+
+        var selectedId = String(state.selectedQuestionId);
+
+        // Group questions by round, in canonical order.
+        var ORDER = ['easy', 'medium', 'hard', 'clincher'];
+        var byRound = {};
+        state.questions.forEach(function (q) {
+            var r = q.round || 'easy';
+            (byRound[r] = byRound[r] || []).push(q);
+        });
+        var groupKeys = ORDER.filter(function (r) { return byRound[r]; });
+        Object.keys(byRound).forEach(function (r) {
+            if (groupKeys.indexOf(r) === -1) groupKeys.push(r);
+        });
+
+        var headTop = '<th class="name-col" rowspan="2">Contestant</th>';
+        groupKeys.forEach(function (r) {
+            headTop += '<th class="round-group round-' + r + '" colspan="' + byRound[r].length + '">'
+                + roundLabel(r) + '</th>';
+        });
+        headTop += '<th class="total-col" rowspan="2">Total</th><th rowspan="2">Rank</th>';
+
+        var headBottom = '';
+        state.questions.forEach(function (q) {
+            var cls = String(q.id) === selectedId ? ' class="is-selected"' : '';
+            headBottom += '<th' + cls + '>Q' + q.question_number + '</th>';
+        });
+
+        var body = state.contestants.map(function (c) {
+            var cells = '<td class="name-col">' + escapeHtml(contestantLabel(c)) + '</td>';
+            state.questions.forEach(function (q) {
+                var entry = cell(c.id, q.id);
+                var cls = String(q.id) === selectedId ? ' class="is-selected"' : '';
+                cells += '<td' + cls + '>' + (entry ? entry.points_awarded : '—') + '</td>';
+            });
+            var r = rank(c.id);
+            cells += '<td class="total-col">' + total(c.id) + '</td>';
+            cells += '<td>' + (r === null ? '—' : '#' + r) + '</td>';
+            return '<tr>' + cells + '</tr>';
+        }).join('');
+
+        var foot = '<td class="name-col">Total per question</td>';
+        state.questions.forEach(function (q) {
+            var cls = String(q.id) === selectedId ? ' class="is-selected"' : '';
+            foot += '<td' + cls + '>' + (state.question_sums[String(q.id)] || 0) + '</td>';
+        });
+        var grand = 0;
+        state.contestants.forEach(function (c) { grand += total(c.id); });
+        foot += '<td class="total-col">' + grand + '</td><td></td>';
+
+        wrap.innerHTML = '<table class="scorer-matrix">'
+            + '<thead><tr>' + headTop + '</tr><tr>' + headBottom + '</tr></thead>'
+            + '<tbody>' + body + '</tbody>'
+            + '<tfoot><tr>' + foot + '</tr></tfoot>'
+            + '</table>';
+    }
+
+    function renderStats() {
+        var q = selectedQuestion();
+        var marked = 0;
+        var correct = 0;
+
+        if (q) {
+            contestantsForQuestion(q).forEach(function (c) {
+                var entry = cell(c.id, q.id);
+                if (entry) {
+                    marked++;
+                    if (entry.result === 'correct') correct++;
+                }
+            });
+        }
+
+        var totalPoints = 0;
+        Object.keys(state.question_sums).forEach(function (k) {
+            totalPoints += Number(state.question_sums[k]) || 0;
+        });
+
+        document.getElementById('stat-marked').textContent = marked;
+        document.getElementById('stat-correct').textContent = correct;
+        document.getElementById('stat-total-points').textContent = totalPoints;
+    }
+
+    // ---- Event handlers -------------------------------------------------
+    function onScoreClick(e) {
+        var btn = e.currentTarget;
+        var contestantId = btn.getAttribute('data-contestant');
+        var result = btn.getAttribute('data-result');
+        var q = selectedQuestion();
+        if (!q) return;
+
+        var existing = cell(contestantId, q.id);
+
+        if (existing && existing.result === result) {
+            return; // already marked this way
+        }
+
+        doScore(q, contestantId, result, btn);
+    }
+
+    function doScore(question, contestantId, result, triggerEl) {
+        if (actionInFlight) return;
         actionInFlight = true;
         if (triggerEl) triggerEl.disabled = true;
 
-        return apiPost(action, params).then(function (res) {
+        apiPost('score', {
+            question_id: question.id,
+            contestant_id: contestantId,
+            result: result
+        }).then(function (res) {
             actionInFlight = false;
             if (triggerEl) triggerEl.disabled = false;
 
             if (!res.ok) {
-                console.warn('Action failed:', res.error);
-                return refresh();
+                alert(res.error || 'Could not record the score.');
+                return;
             }
 
-            if (res.state && res.current_question_scores !== undefined) {
-                applyDashboard(res);
-            } else if (res.state) {
-                return refresh();
-            }
+            // Apply the returned entry directly, then refresh totals/ranks
+            // from the authoritative report.
+            state.cells[String(contestantId)] = state.cells[String(contestantId)] || {};
+            state.cells[String(contestantId)][String(question.id)] = res.entry;
+
+            flashRow(contestantId, result);
+            render();
+            refresh();
         }).catch(function () {
             actionInFlight = false;
             if (triggerEl) triggerEl.disabled = false;
         });
     }
 
-    function refresh() {
-        return apiGet('state').then(function (res) {
-            if (res.ok) {
-                applyDashboard(res);
-            }
-        }).catch(function () {});
+    function flashRow(contestantId, result) {
+        var row = document.querySelector('.scorer-quick-row[data-contestant="' + contestantId + '"]');
+        if (!row) return;
+        var cls = result === 'correct' ? 'scorer-flash-correct' : 'scorer-flash-incorrect';
+        row.classList.add(cls);
+        setTimeout(function () { row.classList.remove('scorer-flash-correct', 'scorer-flash-incorrect'); }, 1000);
     }
 
-    // ---- Rendering ------------------------------------------------------
-    function applyDashboard(d) {
-        dashboard = d;
+    function onQuestionChange(e) {
+        var id = e.target.value;
+        state.selectedQuestionId = id === '' ? null : id;
         render();
     }
 
-    function render() {
-        var state = dashboard.state;
-        var q = state.current_question;
-        var rankings = dashboard.rankings || [];
-
-        // Status bar
-        document.getElementById('scorer-event-status').textContent =
-            state.is_active ? '● LIVE' : (state.display_state === 'final_results' ? 'EVENT ENDED' : 'NOT STARTED');
-
-        var progress = state.question_progress;
-        var progressText = '';
-        if (progress.position) {
-            progressText = 'Question ' + progress.position + ' of ' + progress.total;
-        } else {
-            progressText = progress.total + ' question(s) configured';
-        }
-        document.getElementById('scorer-question-progress').textContent = progressText;
-
-        // Reference info
-        document.getElementById('ref-contestants').textContent = rankings.length;
-        document.getElementById('ref-questions').textContent = progress.total;
-        document.getElementById('ref-points').textContent = q ? q.points : (dashboard.state.event ? '—' : '0');
-        document.getElementById('ref-time').textContent = q ? (q.time_seconds + 's') : '—';
-
-        // Stats
-        var totalEntries = (dashboard.current_question_scores || []).length;
-        var totalPoints = 0;
-        rankings.forEach(function (r) {
-            totalPoints += r.total_score;
-        });
-        document.getElementById('stat-questions-answered').textContent = totalEntries;
-        document.getElementById('stat-total-points').textContent = totalPoints;
-
-        // Render main table
-        renderScoreboard(rankings);
-
-        // Render question detail
-        renderQuestionDetail(q);
-
-        // Render quick score
-        renderQuickScore(q, rankings);
-
-        // Render round breakdown
-        renderRoundBreakdown(rankings, state);
-    }
-
-    function renderScoreboard(rankings) {
-        var tbody = document.getElementById('scorer-table-body');
-        if (!rankings || rankings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="muted" style="text-align:center;padding:24px;">No contestants configured yet.</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = rankings.map(function (r, idx) {
-            var rankClass = '';
-            if (r.rank === 1) rankClass = ' scorer-row-leader';
-            return '<tr class="' + rankClass + '" data-contestant="' + r.contestant_id + '">' +
-                '<td class="col-rank"><span class="rank-badge">' + r.rank + '</span></td>' +
-                '<td class="col-number">' + (idx + 1) + '</td>' +
-                '<td class="col-acronym">' + escapeHtml(r.acronym || r.team_code || '—') + '</td>' +
-                '<td class="col-name">' + escapeHtml(r.name) + '</td>' +
-                '<td class="col-total">' + r.total_score + '</td>' +
-                '</tr>';
-        }).join('');
-    }
-
-    function renderQuestionDetail(q) {
-        var container = document.getElementById('scorer-question-detail');
-        var scoresContainer = document.getElementById('scorer-question-scores');
-
-        if (!q) {
-            container.innerHTML = '<p class="muted">No question currently active.</p>';
-            scoresContainer.innerHTML = '';
-            return;
-        }
-
-        var imgHtml = q.image_path
-            ? '<img src="../' + escapeHtml(q.image_path) + '" alt="Question ' + q.question_number + '">'
-            : '';
-
-        container.innerHTML =
-            '<div class="scorer-question-meta">' +
-                '<div class="meta-item"><strong>Q' + q.question_number + '</strong></div>' +
-                '<div class="meta-item">Category: <span>' + escapeHtml(q.category || '—') + '</span></div>' +
-                '<div class="meta-item">Points: <span>' + q.points + '</span></div>' +
-                '<div class="meta-item">Time: <span>' + q.time_seconds + 's</span></div>' +
-            '</div>' +
-            imgHtml;
-
-        // Show current question scores
-        var scores = dashboard.current_question_scores || [];
-        if (scores.length === 0) {
-            scoresContainer.innerHTML = '<p class="muted">No scores recorded yet for this question.</p>';
-            return;
-        }
-
-        var scoresByContestant = {};
-        scores.forEach(function (s) {
-            scoresByContestant[s.contestant_id] = s;
-        });
-
-        var rankingsMap = {};
-        (dashboard.rankings || []).forEach(function (r) {
-            rankingsMap[r.contestant_id] = r;
-        });
-
-        scoresContainer.innerHTML = '<table class="scorer-round-table">' +
-            '<thead><tr><th>Contestant</th><th>Acro.</th><th>Result</th><th>Points</th></tr></thead>' +
-            '<tbody>' +
-            scores.map(function (s) {
-                var r = rankingsMap[s.contestant_id] || {};
-                var resultClass = s.result === 'correct' ? 'correct' : s.result === 'incorrect' ? 'incorrect' : 'no-answer';
-                var resultLabel = s.result.charAt(0).toUpperCase() + s.result.slice(1).replace('_', ' ');
-                return '<tr>' +
-                    '<td>' + escapeHtml(r.name || '—') + '</td>' +
-                    '<td>' + escapeHtml(r.acronym || r.team_code || '—') + '</td>' +
-                    '<td><span class="result-' + resultClass + '">' + resultLabel + '</span></td>' +
-                    '<td>' + s.points_awarded + '</td>' +
-                    '</tr>';
-            }).join('') +
-            '</tbody></table>';
-    }
-
-    function renderQuickScore(q, rankings) {
-        var container = document.getElementById('scorer-quick-score');
-
-        if (!q) {
-            container.innerHTML = '<p class="muted">Start a question to begin scoring.</p>';
-            return;
-        }
-
-        var scoresByContestant = {};
-        (dashboard.current_question_scores || []).forEach(function (s) {
-            scoresByContestant[s.contestant_id] = s;
-        });
-
-        container.innerHTML = rankings.map(function (r) {
-            var existing = scoresByContestant[r.contestant_id];
-
-            function btn(result, label, cls) {
-                var selected = existing && existing.result === result;
-                return '<button type="button" class="scorer-quick-btn ' + cls + (selected ? ' selected' : '') + '" ' +
-                    'data-contestant="' + r.contestant_id + '" data-result="' + result + '">' + label + '</button>';
-            }
-
-            return '<div class="scorer-quick-row">' +
-                '<span class="scorer-quick-name"><span class="acronym">' + escapeHtml(r.acronym || r.team_code || '?') + '</span>' +
-                escapeHtml(r.name) + '</span>' +
-                '<div class="scorer-quick-buttons">' +
-                    btn('correct', '+', 'correct') +
-                    btn('incorrect', '−', 'incorrect') +
-                    btn('no_answer', '—', 'no-answer') +
-                '</div>' +
-            '</div>';
-        }).join('');
-
-        container.querySelectorAll('.scorer-quick-btn').forEach(function (b) {
-            b.addEventListener('click', onQuickScoreClick);
-        });
-    }
-
-    function renderRoundBreakdown(rankings, state) {
-        var container = document.getElementById('scorer-round-breakdown');
-        
-        // For now, show all scores grouped by question
-        var allScores = dashboard.all_scores || [];
-        if (allScores.length === 0) {
-            container.innerHTML = '<p class="muted">Round data will appear here once scoring begins.</p>';
-            return;
-        }
-
-        // Group by question
-        var byQuestion = {};
-        allScores.forEach(function (s) {
-            if (!byQuestion[s.question_id]) {
-                byQuestion[s.question_id] = {
-                    question_number: s.question_number,
-                    scores: []
-                };
-            }
-            byQuestion[s.question_id].scores.push(s);
-        });
-
-        var rows = rankings.map(function (r) {
-            var cells = '<td>' + escapeHtml(r.name) + '</td>';
-            Object.keys(byQuestion).sort(function(a,b) { return a-b; }).forEach(function(qId) {
-                var s = byQuestion[qId].scores.find(function(x) { return x.contestant_id === r.contestant_id; });
-                cells += '<td>' + (s ? s.points_awarded : '—') + '</td>';
-            });
-            cells += '<td class="total-col">' + r.total_score + '</td>';
-            return '<tr>' + cells + '</tr>';
-        });
-
-        var headers = '<th>Contestant</th>';
-        Object.keys(byQuestion).sort(function(a,b) { return a-b; }).forEach(function(qId) {
-            headers += '<th>Q' + byQuestion[qId].question_number + '</th>';
-        });
-        headers += '<th>Total</th>';
-
-        container.innerHTML = '<table class="scorer-round-table"><thead><tr>' + headers + '</tr></thead><tbody>' + rows.join('') + '</tbody></table>';
-    }
-
-    function escapeHtml(s) {
-        if (!s) return '';
-        var d = document.createElement('div');
-        d.textContent = s;
-        return d.innerHTML;
-    }
-
-    // ---- Event handlers -------------------------------------------------
-    function onQuickScoreClick(e) {
-        var btn = e.currentTarget;
-        var contestantId = btn.getAttribute('data-contestant');
-        var result = btn.getAttribute('data-result');
-        var q = dashboard.state.current_question;
-        if (!q) return;
-
-        var existing = (dashboard.current_question_scores || []).find(function (s) {
-            return String(s.contestant_id) === String(contestantId);
-        });
-
-        if (existing && existing.result === result) return;
-
-        if (existing) {
-            var labels = { correct: 'Correct', incorrect: 'Incorrect', no_answer: 'No Answer' };
-            if (!confirm('Change from ' + labels[existing.result] + ' to ' + labels[result] + '?')) return;
-        }
-
-        doAction('score', {
-            question_id: q.id,
-            contestant_id: contestantId,
-            result: result
-        }, btn).then(function () {
-            // Flash animation
-            var row = btn.closest('.scorer-quick-row');
-            if (row) {
-                row.classList.add(result === 'correct' ? 'scorer-flash-correct' : 'scorer-flash-incorrect');
-                setTimeout(function() { row.classList.remove('scorer-flash-correct', 'scorer-flash-incorrect'); }, 1000);
-            }
-        });
-    }
-
-    document.getElementById('scorer-btn-refresh').addEventListener('click', function() {
+    document.getElementById('scorer-question-select').addEventListener('change', onQuestionChange);
+    document.getElementById('scorer-btn-refresh').addEventListener('click', function () {
         refresh();
-    });
-
-    document.getElementById('scorer-btn-export-excel').addEventListener('click', function() {
-        window.open('../api/runtime.php?action=export_scores&format=excel&event_id=' + eventId, '_blank');
-    });
-
-    document.getElementById('scorer-btn-export-pdf').addEventListener('click', function() {
-        window.open('../api/runtime.php?action=export_scores&format=pdf&event_id=' + eventId, '_blank');
     });
 
     // ---- Polling ----------------------------------------------------------

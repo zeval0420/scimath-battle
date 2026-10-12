@@ -85,6 +85,14 @@ logo.src = '../' + eventInfo.logo_path;
         numEl.textContent = 'Question ' + q.question_number;
         numEl.style.visibility = presentation.show_question_number ? 'visible' : 'hidden';
 
+        var roundEl = document.getElementById('disp-q-round');
+        if (roundEl) {
+            var rl = roundLabel(q.round);
+            roundEl.textContent = rl ? rl + ' Round' : '';
+            roundEl.className = 'disp-question-round round-' + (q.round || '');
+            roundEl.style.visibility = rl ? 'visible' : 'hidden';
+        }
+
         document.getElementById('disp-timer').parentElement.style.visibility = presentation.show_timer ? 'visible' : 'hidden';
 
         var img = document.getElementById('disp-q-image');
@@ -116,6 +124,69 @@ logo.src = '../' + eventInfo.logo_path;
                 '<span class="disp-rank-score">' + r.total_score + '</span>' +
                 '</div>';
         }).join('');
+    }
+
+    /**
+     * Renders the score-breakdown matrix: contestants (rows) x questions
+     * (columns) grouped by round, with each team's total. Used by both the
+     * final (all rounds) and round (single round) ranking views. Row order,
+     * cell values, and totals are authoritative from the server -- the
+     * client only lays them out.
+     */
+    function renderBreakdown(container, breakdown, titleEl, titleText) {
+        if (titleEl) titleEl.textContent = titleText;
+        if (!container) return;
+
+        if (!breakdown || !breakdown.questions || breakdown.questions.length === 0) {
+            container.innerHTML = '<p class="disp-breakdown-empty">No questions to show.</p>';
+            return;
+        }
+
+        var questions = breakdown.questions;
+        var contestants = breakdown.contestants || [];
+        var cells = breakdown.cells || {};
+
+        // Group the questions by round, preserving their given order.
+        var groups = [];
+        var groupAt = {};
+        questions.forEach(function (q) {
+            var r = q.round || 'easy';
+            if (groupAt[r] === undefined) {
+                groupAt[r] = groups.length;
+                groups.push({ round: r, questions: [] });
+            }
+            groups[groupAt[r]].questions.push(q);
+        });
+
+        var html = '<table class="disp-breakdown-table"><thead><tr>';
+        html += '<th class="disp-bd-name" rowspan="2">Team</th>';
+        groups.forEach(function (g) {
+            html += '<th class="disp-bd-group" colspan="' + g.questions.length + '">' + escapeHtml(roundLabel(g.round)) + '</th>';
+        });
+        html += '<th class="disp-bd-total" rowspan="2">Total</th>';
+        html += '</tr><tr>';
+        groups.forEach(function (g) {
+            g.questions.forEach(function (q) {
+                html += '<th class="disp-bd-q">Q' + q.number + '</th>';
+            });
+        });
+        html += '</tr></thead><tbody>';
+
+        contestants.forEach(function (c) {
+            var rowClass = c.rank <= 3 ? ' class="rank-' + c.rank + '"' : '';
+            html += '<tr' + rowClass + '>';
+            html += '<th class="disp-bd-name" scope="row"><span class="disp-bd-rank">' + c.rank + '</span>' + escapeHtml(c.name) + '</th>';
+            questions.forEach(function (q) {
+                var row = cells[c.id];
+                var value = (row && row[q.id] !== undefined) ? row[q.id] : 0;
+                html += '<td class="disp-bd-cell">' + value + '</td>';
+            });
+            html += '<td class="disp-bd-total">' + c.total + '</td>';
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
     }
 
     function renderFinal(eventInfo, rankings) {
@@ -150,6 +221,12 @@ logo.src = '../' + eventInfo.logo_path;
         return d.innerHTML;
     }
 
+    var ROUND_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard', clincher: 'Clincher' };
+    function roundLabel(r) {
+        if (!r) return '';
+        return ROUND_LABELS[r] || (r.charAt(0).toUpperCase() + r.slice(1));
+    }
+
     function applyState(data) {
         current = data;
         setTimerAnchor(data.timer);
@@ -165,7 +242,22 @@ logo.src = '../' + eventInfo.logo_path;
         } else if (data.display_state === 'question' || data.display_state === 'time_up') {
             renderQuestion(data.current_question, data.presentation);
         } else if (data.display_state === 'ranking') {
-            renderRankingRows(document.getElementById('disp-ranking-list'), data.rankings);
+            renderBreakdown(
+                document.getElementById('disp-ranking-breakdown'),
+                data.breakdown,
+                document.getElementById('disp-ranking-title'),
+                'Final Rankings'
+            );
+        } else if (data.display_state === 'round_ranking') {
+            var roundTitle = (data.breakdown && data.breakdown.round_label)
+                ? data.breakdown.round_label + ' Round Rankings'
+                : 'Round Rankings';
+            renderBreakdown(
+                document.getElementById('disp-round-ranking-breakdown'),
+                data.breakdown,
+                document.getElementById('disp-round-ranking-title'),
+                roundTitle
+            );
         } else if (data.display_state === 'final_results') {
             renderFinal(data.event, data.rankings);
         } else if (data.display_state === 'promotional') {
@@ -221,7 +313,7 @@ logo.src = '../' + eventInfo.logo_path;
         if (state === 'cover' && bannerAudio) {
             gameAudio && gameAudio.pause();
             bannerAudio.play().catch(function() {});
-        } else if ((state === 'question' || state === 'ranking' || state === 'final_results') && gameAudio) {
+        } else if ((state === 'question' || state === 'ranking' || state === 'round_ranking' || state === 'final_results') && gameAudio) {
             bannerAudio && bannerAudio.pause();
             gameAudio.play().catch(function() {});
         } else {

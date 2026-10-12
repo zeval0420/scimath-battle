@@ -271,7 +271,7 @@ require __DIR__ . '/includes/header.php';
                 <p class="muted">No contestants yet. Add as many as this event needs — there's no fixed limit.</p>
             <?php else: ?>
                 <table>
-                    <thead><tr><th></th><th>Logo</th><th>Name</th><th>Code</th><th>Organization</th><th>Start</th><th>Active</th><th></th></tr></thead>
+                    <thead><tr><th></th><th>Logo</th><th>Name</th><th>Code</th><th>Organization</th><th>Start</th><th>Active</th><th>Clincher</th><th></th></tr></thead>
                     <tbody>
                     <?php foreach ($event['contestants'] as $i => $c): ?>
                         <tr>
@@ -299,6 +299,7 @@ require __DIR__ . '/includes/header.php';
                             <td class="muted"><?= htmlspecialchars($c['organization'] ?? '') ?></td>
                             <td><?= (int) $c['starting_score'] ?></td>
                             <td><?= ((int) $c['is_active']) ? 'Yes' : '<span class="muted">No</span>' ?></td>
+                            <td><?= ((int) ($c['is_clincher'] ?? 0)) ? 'Yes' : '<span class="muted">No</span>' ?></td>
                             <td class="row-actions">
                                 <a class="btn btn-small" href="?id=<?= $eventId ?>&edit_contestant=<?= (int) $c['id'] ?>#contestants">Edit</a>
                                 <form method="post" action="actions/contestant_delete.php" data-confirm="Remove &quot;<?= htmlspecialchars($c['name'], ENT_QUOTES) ?>&quot;? If it has recorded scores it will be deactivated instead of deleted, to preserve history.">
@@ -352,12 +353,42 @@ require __DIR__ . '/includes/header.php';
                     <label class="checkbox"><input type="checkbox" name="is_active" value="1" <?= ((int) $editingContestant['is_active']) ? 'checked' : '' ?>> Active</label>
                 </div>
                 <?php endif; ?>
+                <div class="field">
+                    <label class="checkbox"><input type="checkbox" name="is_clincher" value="1" <?= ((int) ($editingContestant['is_clincher'] ?? 0)) ? 'checked' : '' ?>> Selected for the clincher round</label>
+                    <div class="hint">Only selected teams can be scored on clincher-round questions.</div>
+                </div>
                 <div class="btn-row">
                     <button type="submit" class="btn btn-primary"><?= $editingContestant ? 'Save changes' : 'Add contestant' ?></button>
                     <?php if ($editingContestant): ?><a class="btn" href="?id=<?= $eventId ?>#contestants">Cancel</a><?php endif; ?>
                 </div>
             </form>
         </div>
+    </div>
+
+    <div class="card" style="margin-top:24px;">
+        <h2>Clincher Round Teams</h2>
+        <p class="muted">Manually select which teams advance to the clincher round. Only the teams checked here can be scored on clincher-round questions.</p>
+        <?php if ($event['contestants'] === []): ?>
+            <p class="muted">Add contestants first, then return here to select the clincher teams.</p>
+        <?php else: ?>
+            <form method="post" action="actions/clincher_save.php">
+                <?= Csrf::field() ?>
+                <input type="hidden" name="event_id" value="<?= $eventId ?>">
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:12px 0 16px;">
+                    <?php foreach ($event['contestants'] as $c): ?>
+                        <label class="checkbox" style="display:flex;align-items:center;gap:8px;">
+                            <input type="checkbox" name="clincher_ids[]" value="<?= (int) $c['id'] ?>" <?= ((int) ($c['is_clincher'] ?? 0)) ? 'checked' : '' ?>>
+                            <span>
+                                <?= htmlspecialchars($c['name']) ?>
+                                <?php if (!empty($c['team_code'])): ?><span class="muted">(<?= htmlspecialchars($c['team_code']) ?>)</span><?php endif; ?>
+                                <?php if (!((int) $c['is_active'])): ?><span class="muted">&mdash; inactive</span><?php endif; ?>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+                <button type="submit" class="btn btn-primary">Save clincher team selection</button>
+            </form>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -370,7 +401,7 @@ require __DIR__ . '/includes/header.php';
                 <p class="muted">No questions yet. Upload the first question slide using the form on the right.</p>
             <?php else: ?>
                 <table>
-                    <thead><tr><th></th><th>Preview</th><th>#</th><th>Category</th><th>Points</th><th>Time</th><th>Active</th><th></th></tr></thead>
+                    <thead><tr><th></th><th>Preview</th><th>#</th><th>Category</th><th>Round</th><th>Points</th><th>Time</th><th>Active</th><th></th></tr></thead>
                     <tbody>
                     <?php foreach ($event['questions'] as $i => $q): ?>
                         <?php
@@ -403,6 +434,7 @@ require __DIR__ . '/includes/header.php';
                             <td><img class="thumb" src="../<?= htmlspecialchars($q['image_path']) ?>" alt="Question <?= (int) $q['question_number'] ?>"></td>
                             <td>Q<?= (int) $q['question_number'] ?></td>
                             <td class="muted"><?= htmlspecialchars($catName) ?></td>
+                            <td><?= htmlspecialchars(Round::label($q['round'] ?? Round::EASY)) ?></td>
                             <td><?= $pts ?><?= $q['points'] === null ? ' <span class="muted">(default)</span>' : '' ?></td>
                             <td><?= $time ?>s<?= $q['time_seconds'] === null ? ' <span class="muted">(default)</span>' : '' ?></td>
                             <td><?= ((int) $q['is_active']) ? 'Yes' : '<span class="muted">No</span>' ?></td>
@@ -445,6 +477,18 @@ require __DIR__ . '/includes/header.php';
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+
+                <div class="field">
+                    <label for="q_round">Round *</label>
+                    <select id="q_round" name="round">
+                        <?php foreach (Round::ALL as $r): ?>
+                            <option value="<?= $r ?>" <?= (($editingQuestion['round'] ?? Round::EASY) === $r) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars(Round::label($r)) ?><?= $r === Round::CLINCHER ? ' (selected teams only)' : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="hint">Easy, Medium and Hard are played by every team. Clincher questions can only be scored for the teams you select for the clincher round.</div>
                 </div>
 
                 <div class="form-grid">

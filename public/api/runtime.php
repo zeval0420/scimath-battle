@@ -68,6 +68,13 @@ try {
             api_ok(['rankings' => CompetitionRuntime::getRankings($eventId)]);
             break;
 
+        case 'report':
+            // Full quiz-bee table (contestants x questions + totals/ranks) for
+            // the scorer interface, built from the same source as the export.
+            require_once __DIR__ . '/../../src/Support/ScoreReport.php';
+            api_ok(['report' => ScoreReport::build($eventId)]);
+            break;
+
         // ---- Event lifecycle -----------------------------------------
         case 'start_event':
             require_write();
@@ -130,6 +137,12 @@ try {
             api_ok(['state' => CompetitionRuntime::showRanking($eventId)]);
             break;
 
+        case 'show_round_ranking':
+            require_write();
+            $round = (string) ($input['round'] ?? '');
+            api_ok(['state' => CompetitionRuntime::showRoundRanking($eventId, $round)]);
+            break;
+
         case 'return_to_question':
             require_write();
             api_ok(['state' => CompetitionRuntime::returnToQuestion($eventId)]);
@@ -176,8 +189,7 @@ try {
 
         case 'start_round':
             require_write();
-            $round = isset($input['round_number']) && $input['round_number'] !== ''
-                ? (int) $input['round_number'] : null;
+            $round = (string) ($input['round'] ?? '');
             api_ok(['state' => CompetitionRuntime::startRound($eventId, $round)]);
             break;
 
@@ -199,41 +211,16 @@ try {
             $entry = CompetitionRuntime::scoreContestant(
                 $eventId, $questionId, $contestantId, $result, $adjustmentPoints, Auth::username(), $reason
             );
-            api_ok(['entry' => $entry] + CompetitionRuntime::getDashboard($eventId));
+            api_ok([
+                'entry'    => $entry,
+                'scores'   => CompetitionRuntime::getScores($eventId, $questionId),
+                'rankings' => CompetitionRuntime::getRankings($eventId),
+            ]);
             break;
 
         // ---- Export -----------------------------------------------------
-        case 'export_scores':
-            require_write();
-            $format = (string) ($input['format'] ?? 'excel');
-            $event = Event::find($eventId);
-            if (!$event) {
-                api_fail(404, 'Event not found.');
-            }
-            $dashboard = CompetitionRuntime::getDashboard($eventId);
-            $rankings = $dashboard['rankings'] ?? [];
-            $filename = 'scimath_scores_' . preg_replace('/[^a-zA-Z0-9]/', '_', $event['name']) . '.' . ($format === 'pdf' ? 'pdf' : 'csv');
-
-            if ($format === 'excel' || $format === 'csv') {
-                header('Content-Type: text/csv; charset=utf-8');
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                $fp = fopen('php://output', 'w');
-                fputcsv($fp, ['Rank', 'Contestant Name', 'Team Code', 'Acronym', 'Starting Score', 'Total Score']);
-                foreach ($rankings as $r) {
-                    fputcsv($fp, [$r['rank'], $r['name'], $r['team_code'] ?? '', $r['acronym'] ?? '', $r['starting_score'] ?? 0, $r['total_score']]);
-                }
-                fclose($fp);
-                exit;
-            } elseif ($format === 'pdf') {
-                // Placeholder for PDF export - integrate TCPDF/mPDF for production
-                header('Content-Type: application/pdf');
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                echo "%PDF-1.4\nScimath Score Report\nEvent: " . $event['name'] . "\n";
-                exit;
-            } else {
-                api_fail(400, 'Invalid format. Use excel, csv, or pdf.');
-            }
-            break;
+        // Reports are streamed by public/api/export_scores.php (GET), since a
+        // JSON endpoint is the wrong shape for a file download.
 
         // ---- Promotional Slides CRUD ----------------------------------
         case 'promotional_slides':

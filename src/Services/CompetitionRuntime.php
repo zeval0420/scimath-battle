@@ -81,6 +81,8 @@ class CompetitionRuntime
             'is_active'      => (bool) $session['is_active'],
             'ended_at'       => $session['ended_at'],
             'display_state'  => $session['display_state'],
+            'ranking_round'  => $session['display_round'] ?? null,
+            'current_round'  => $currentQuestion !== null ? ($currentQuestion['round'] ?? null) : null,
             'current_question' => $currentQuestion,
             'question_progress' => [
                 'position'         => $questionPosition, // null if no current question
@@ -356,7 +358,7 @@ class CompetitionRuntime
         $db->beginTransaction();
 
         try {
-            $session = CompetitionSession::lockForEvent($eventId);
+            $session = self::lockOrCreateSession($eventId);
             if ($session === null) {
                 throw new CompetitionRuntimeException('This event has no competition session.');
             }
@@ -390,7 +392,33 @@ class CompetitionRuntime
         return self::mutate($eventId, function (array $session) {
             self::requireActive($session);
 
-            return ['display_state' => DisplayState::RANKING];
+            return [
+                'display_state' => DisplayState::RANKING,
+                'display_round' => null,
+            ];
+        });
+    }
+
+    /**
+     * Shows the standings with the score breakdown for a single round only
+     * (contestants x that round's questions, plus each team's total for that
+     * round). The round is remembered on the session so the public display
+     * keeps rendering the same round across polls, and is validated against
+     * the canonical round list here rather than trusting the caller's UI.
+     */
+    public static function showRoundRanking(int $eventId, string $round): array
+    {
+        if (!in_array($round, Round::ALL, true)) {
+            throw new CompetitionRuntimeException('Invalid round.');
+        }
+
+        return self::mutate($eventId, function (array $session) use ($round) {
+            self::requireActive($session);
+
+            return [
+                'display_state' => DisplayState::ROUND_RANKING,
+                'display_round' => $round,
+            ];
         });
     }
 
@@ -538,18 +566,26 @@ class CompetitionRuntime
     // Round Control
     // ------------------------------------------------------------------
 
-    public static function startRound(int $eventId, ?int $roundNumber = null): array
+    public static function startRound(int $eventId, string $round): array
     {
-        return self::mutate($eventId, function (array $session) use ($roundNumber) {
+        if (!in_array($round, Round::ALL, true)) {
+            throw new CompetitionRuntimeException('Invalid round.');
+        }
+
+        return self::mutate($eventId, function (array $session) use ($eventId, $round) {
             self::requireActive($session);
 
-            $nextRound = $roundNumber ?? ((int) ($session['current_round'] ?? 0) + 1);
+            $question = Question::firstInRound($eventId, $round);
+            if ($question === null) {
+                throw new CompetitionRuntimeException(
+                    'There are no active ' . Round::label($round) . ' round questions.'
+                );
+            }
 
-            return [
-                'current_round'   => $nextRound,
-                'round_started_at' => date('Y-m-d H:i:s'),
-                'display_state'   => DisplayState::COVER,
-            ];
+            $update = self::buildNavigationUpdate($eventId, $question);
+            $update['round_started_at'] = date('Y-m-d H:i:s');
+
+            return $update;
         });
     }
 
@@ -608,7 +644,23 @@ class CompetitionRuntime
         $settings = EventSetting::forEvent($eventId);
         $audioConfig = $settings ? EventSetting::audioConfig($settings) : [];
 
-        $needsRanking = in_array($state['display_state'], [DisplayState::RANKING, DisplayState::FINAL_RESULTS], true);
+        $needsRanking = in_array(
+            $state['display_state'],
+            [DisplayState::RANKING, DisplayState::ROUND_RANKING, DisplayState::FINAL_RESULTS],
+            true
+        );
+
+        // The breakdown is what the projected screen renders in ranking
+        // states: a contestants x questions matrix (the "who scored what"
+        // detail), scoped to one round for ROUND_RANKING and across all
+        // rounds for RANKING. FINAL_RESULTS keeps the existing champion
+        // screen, so it only needs the simple standings.
+        $breakdown = null;
+        if ($state['display_state'] === DisplayState::RANKING) {
+            $breakdown = self::buildScoreBreakdown($eventId, null);
+        } elseif ($state['display_state'] === DisplayState::ROUND_RANKING) {
+            $breakdown = self::buildScoreBreakdown($eventId, $state['ranking_round'] ?? null);
+        }
 
         return [
             'event'          => [
@@ -618,12 +670,15 @@ class CompetitionRuntime
                 'cover_image_path' => $event['cover_image_path'],
             ],
             'display_state'  => $state['display_state'],
+            'current_round'  => $state['current_round'],
+            'ranking_round'  => $state['ranking_round'],
             'current_question' => $state['current_question'],
             'question_progress' => $state['question_progress'],
             'timer'          => $state['timer'],
             'presentation'   => $state['presentation'],
             'audio_config'   => $audioConfig,
             'rankings'       => $needsRanking ? self::getRankings($eventId) : [],
+            'breakdown'      => $breakdown,
             'promotional_slide' => $state['display_state'] === DisplayState::PROMOTIONAL ? ($state['promotional_slide'] ?? null) : null,
             'answer_slide'   => $state['display_state'] === DisplayState::ANSWER ? ($state['answer_slide'] ?? null) : null,
         ];
@@ -683,6 +738,13 @@ class CompetitionRuntime
             throw new CompetitionRuntimeException('That contestant is inactive and cannot be scored.');
         }
 
+        // Clincher-round questions belong only to the manually selected teams.
+        if (Round::isClincher($question['round'] ?? null) && !(bool) ($contestant['is_clincher'] ?? 0)) {
+            throw new CompetitionRuntimeException(
+                'This is a clincher-round question; only teams selected for the clincher round can be scored on it.'
+            );
+        }
+
         $settings = EventSetting::forEvent($eventId);
         $points = self::resolveResultPoints($result, $question, $settings, $adjustmentPoints);
 
@@ -710,6 +772,94 @@ class CompetitionRuntime
         self::requireEvent($eventId);
 
         return ScoreEntry::rankingForEvent($eventId);
+    }
+
+    /**
+     * Builds the projected score-breakdown matrix: every team's points for
+     * every question, grouped by round, plus each team's total.
+     *
+     * When $round is null the view spans all rounds and each team's total is
+     * the official cumulative score (including any starting score, matching
+     * the standings). When a specific round is given, only that round's
+     * questions are included and the total is that round's subtotal --
+     * deliberately NOT the starting score, since the round view shows only
+     * what was earned in the round.
+     *
+     * @return array{round: ?string, round_label: ?string, questions: array,
+     *               contestants: array, cells: array<int, array<int, int>>}
+     */
+    private static function buildScoreBreakdown(int $eventId, ?string $round = null): array
+    {
+        $rankings = self::getRankings($eventId);
+        $allScores = ScoreEntry::detailedForEvent($eventId);
+
+        $scopeQuestions = [];
+        foreach (Question::forEvent($eventId, true) as $q) {
+            $qRound = $q['round'] ?? Round::EASY;
+            if ($round !== null && $qRound !== $round) {
+                continue;
+            }
+            $scopeQuestions[] = [
+                'id'     => (int) $q['id'],
+                'number' => (int) $q['question_number'],
+                'round'  => $qRound,
+            ];
+        }
+        $scopeQuestionIds = array_column($scopeQuestions, 'id');
+
+        // contestant_id => question_id => points. Kept for every score in
+        // the event (not just the scoped round) so a single shape works for
+        // both views; the renderer only walks the questions it was given.
+        $cells = [];
+        foreach ($allScores as $entry) {
+            $cells[(int) $entry['contestant_id']][(int) $entry['question_id']] = (int) $entry['points_awarded'];
+        }
+
+        $contestants = [];
+        foreach ($rankings as $r) {
+            $cid = (int) $r['contestant_id'];
+
+            if ($round === null) {
+                $total = (int) $r['total_score'];
+            } else {
+                $total = 0;
+                foreach ($scopeQuestionIds as $qid) {
+                    $total += $cells[$cid][$qid] ?? 0;
+                }
+            }
+
+            $contestants[] = [
+                'id'      => $cid,
+                'name'    => $r['name'],
+                'acronym' => ($r['acronym'] !== null && $r['acronym'] !== '') ? $r['acronym'] : $r['team_code'],
+                'total'   => $total,
+            ];
+        }
+
+        // The cumulative view already arrives ranked; a round view is ranked
+        // fresh by the round's subtotal.
+        if ($round !== null) {
+            usort($contestants, static fn ($a, $b) => $b['total'] <=> $a['total']);
+        }
+
+        $rank = 0;
+        $previous = null;
+        foreach ($contestants as $index => &$c) {
+            if ($c['total'] !== $previous) {
+                $rank = $index + 1;
+            }
+            $c['rank'] = $rank;
+            $previous = $c['total'];
+        }
+        unset($c);
+
+        return [
+            'round'       => $round,
+            'round_label' => $round !== null ? Round::label($round) : null,
+            'questions'   => $scopeQuestions,
+            'contestants' => $contestants,
+            'cells'       => $cells,
+        ];
     }
 
     private static function resolveResultPoints(string $result, array $question, ?array $settings, ?int $adjustmentPoints): int
@@ -742,6 +892,32 @@ class CompetitionRuntime
         }
 
         return $event;
+    }
+
+    /**
+     * Locks the event's session row, creating it first if it is missing.
+     *
+     * Sessions are normally created alongside the event, but an event created
+     * before that step existed (or one whose session insert failed) should
+     * not permanently break runtime reads/writes -- so we self-heal here.
+     * A concurrent creator racing us is tolerated via the unique-key catch.
+     */
+    private static function lockOrCreateSession(int $eventId): ?array
+    {
+        $session = CompetitionSession::lockForEvent($eventId);
+        if ($session !== null) {
+            return $session;
+        }
+
+        try {
+            CompetitionSession::createFor($eventId);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() !== 23000 && !str_contains($e->getMessage(), '1062')) {
+                throw $e;
+            }
+        }
+
+        return CompetitionSession::lockForEvent($eventId);
     }
 
     private static function requireActive(array $session): void
@@ -784,6 +960,7 @@ class CompetitionRuntime
             'id'              => (int) $question['id'],
             'question_number' => (int) $question['question_number'],
             'category'        => $category,
+            'round'           => $question['round'] ?? Round::EASY,
             'image_path'      => $question['image_path'],
             'points'          => $settings !== null ? Question::effectivePoints($question, $settings) : (int) $question['points'],
             'time_seconds'    => $settings !== null ? Question::effectiveTimeSeconds($question, $settings) : (int) $question['time_seconds'],
@@ -853,7 +1030,7 @@ class CompetitionRuntime
         $db->beginTransaction();
 
         try {
-            $session = CompetitionSession::lockForEvent($eventId);
+            $session = self::lockOrCreateSession($eventId);
             if ($session === null) {
                 throw new CompetitionRuntimeException('This event has no competition session.');
             }
