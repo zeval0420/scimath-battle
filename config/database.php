@@ -9,7 +9,7 @@
  * database (dbadmin) as the rest of the system.
  */
 
-require_once __DIR__ . '/../../../scilab/helperFiles/db_connection.php';
+require_once __DIR__ . '/../../scilab/helperFiles/db_connection.php';
 
 return [
     'driver'    => 'mysql',
