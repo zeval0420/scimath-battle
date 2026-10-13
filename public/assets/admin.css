@@ -436,6 +436,14 @@ tr:last-child td { border-bottom: none; }
     margin: 0;
 }
 
+/* ─── UPLOAD PROGRESS BAR ──────────────────────────────────── */
+#slide-upload-progress {
+    width: 100%;
+}
+#slide-progress-bar {
+    transition: width 0.15s ease;
+}
+
 /* ─── LOGIN CARD BAND (used by login.php) ────────────────── */
 .card-header-band {
     background: var(--primary);

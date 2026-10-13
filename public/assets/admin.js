@@ -79,6 +79,27 @@
         var statusEl = document.getElementById('slide-save-status');
         var fileInfoEl = document.getElementById('slide-file-info');
         var errorEl = document.getElementById('slide-upload-error');
+        var progressEl = document.getElementById('slide-upload-progress');
+        var progressBar = document.getElementById('slide-progress-bar');
+        var progressText = document.getElementById('slide-progress-text');
+        var progressPercent = document.getElementById('slide-progress-percent');
+
+        function showProgress(text) {
+            if (progressEl) progressEl.style.display = 'block';
+            if (progressText) progressText.textContent = text || 'Uploading...';
+            if (progressPercent) progressPercent.textContent = '0%';
+            if (progressBar) progressBar.style.width = '0%';
+        }
+
+        function updateProgress(percent, text) {
+            if (progressBar) progressBar.style.width = percent + '%';
+            if (progressPercent) progressPercent.textContent = percent + '%';
+            if (text && progressText) progressText.textContent = text;
+        }
+
+        function hideProgress() {
+            if (progressEl) progressEl.style.display = 'none';
+        }
 
         function showError(msg) {
             console.error('[slide-upload] Error:', msg);
@@ -176,25 +197,43 @@
             form.append('csrf_token', csrf);
             form.append('event_id', eventId || '');
             
-            console.log('[slide-upload] Sending request...');
-            fetch('actions/batch_upload.php', { method: 'POST', body: form })
-                .then(function(r) {
-                    console.log('[slide-upload] Response status:', r.status, 'OK?', r.ok);
-                    if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 300)); });
-                    return r.json();
-                })
-                .then(function(data) {
+            showProgress('Uploading ' + file.name + '...');
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'actions/batch_upload.php', true);
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    var percent = Math.round((e.loaded / e.total) * 100);
+                    updateProgress(percent, 'Uploading... ' + percent + '%');
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                console.log('[slide-upload] Response status:', xhr.status);
+                if (xhr.status !== 200) {
+                    handleError('Upload failed with HTTP ' + xhr.status);
+                    return;
+                }
+                try {
+                    var data = JSON.parse(xhr.responseText);
                     console.log('[slide-upload] Response data:', JSON.stringify(data).substring(0, 500));
                     if (data.error) { handleError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
+                    hideProgress();
                     log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
-                })
-                .catch(function(err) { 
-                    console.error('[slide-upload] Fetch error:', err);
-                    handleError(err.message); 
-                });
+                } catch(e) {
+                    handleError('Invalid response from server');
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                handleError('Network error during upload');
+            });
+            
+            xhr.send(form);
         }
 
         function handleFiles(files) {
@@ -226,19 +265,44 @@
             }
             form.append('csrf_token', getCsrfToken());
             form.append('event_id', eventId || '');
-            fetch('actions/batch_upload.php', { method: 'POST', body: form })
-                .then(function(r) {
-                    if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t); });
-                    return r.json();
-                })
-                .then(function(data) {
+            
+            showProgress('Uploading ' + files.length + ' file(s)...');
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'actions/batch_upload.php', true);
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    var percent = Math.round((e.loaded / e.total) * 100);
+                    updateProgress(percent, 'Uploading... ' + percent + '%');
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                console.log('[slide-upload] Response status:', xhr.status);
+                if (xhr.status !== 200) {
+                    handleError('Upload failed with HTTP ' + xhr.status);
+                    return;
+                }
+                try {
+                    var data = JSON.parse(xhr.responseText);
+                    console.log('[slide-upload] Response data:', JSON.stringify(data).substring(0, 500));
                     if (data.error) { handleError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
+                    hideProgress();
                     log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
-                })
-                .catch(function(err) { handleError(err.message); });
+                } catch(e) {
+                    handleError('Invalid response from server');
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                handleError('Network error during upload');
+            });
+            
+            xhr.send(form);
         }
 
         function renderPreviews(images) {
