@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/../../../src/bootstrap.php';
 Auth::requireAdmin();
 
@@ -12,7 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 if (!Csrf::check()) {
     http_response_code(419);
-    echo json_encode(['error' => 'Security check failed.']);
+    ob_clean();
+    echo json_encode(['error' => 'Security check failed. Please refresh the page and try again.']);
     exit;
 }
 
@@ -88,7 +90,8 @@ if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
     $zipPath = $_FILES['upload']['tmp_name'];
     $zip = new ZipArchive();
     if ($zip->open($zipPath) !== true) {
-        echo json_encode(['error' => 'Could not open ZIP file.']);
+        ob_clean();
+        echo json_encode(['error' => 'Could not open ZIP file. Make sure it is a valid ZIP archive.']);
         exit;
     }
 
@@ -159,12 +162,14 @@ if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
 
 // ---- Nothing uploaded ------------------------------------------------
 } else {
-    echo json_encode(['error' => 'No files provided.']);
+    ob_clean();
+    echo json_encode(['error' => 'No files provided. Drag and drop files or click to browse.']);
     exit;
 }
 
 if ($staged === []) {
-    echo json_encode(['error' => 'No valid images were found in the upload.']);
+    ob_clean();
+    echo json_encode(['error' => 'No valid images were found. Supported formats: PNG, JPG, WebP.']);
     exit;
 }
 

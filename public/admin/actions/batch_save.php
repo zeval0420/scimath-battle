@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once __DIR__ . '/../../../src/bootstrap.php';
 Auth::requireAdmin();
 
@@ -12,13 +13,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 if (!Csrf::check()) {
     http_response_code(419);
-    echo json_encode(['error' => 'Security check failed.']);
+    ob_clean();
+    echo json_encode(['error' => 'Security check failed. Please refresh the page and try again.']);
     exit;
 }
 
 $eventId = (int) ($_POST['event_id'] ?? 0);
 $event = Event::find($eventId);
 if ($event === null) {
+    ob_clean();
     echo json_encode(['error' => 'Event not found.']);
     exit;
 }
@@ -33,18 +36,21 @@ if (!is_array($slides)) {
 }
 
 if ($sessionId === '') {
+    ob_clean();
     echo json_encode(['error' => 'Missing session ID.']);
     exit;
 }
 
 $sessionKey = 'batch_upload_' . $sessionId;
 if (!isset($_SESSION[$sessionKey])) {
-    echo json_encode(['error' => 'Staged uploads have expired. Please re-upload.']);
+    ob_clean();
+    echo json_encode(['error' => 'Staged uploads have expired. Please re-upload your files.']);
     exit;
 }
 
 $staged = $_SESSION[$sessionKey]['images'] ?? [];
 if ($staged === []) {
+    ob_clean();
     echo json_encode(['error' => 'No staged images.']);
     exit;
 }

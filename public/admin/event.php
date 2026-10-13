@@ -671,7 +671,7 @@ require __DIR__ . '/includes/header.php';
         <p class="hint">Upload a ZIP file or multiple images at once. Classify each slide below, then save all at once. Answer slides are paired to question slides in order.</p>
 
         <div id="slide-upload-area" class="slide-drop-zone">
-            <p style="margin:0;font-size:0.95rem;">Drag &amp; drop a ZIP or images here, or <a href="#" id="slide-browse-btn" onclick="event.preventDefault();document.getElementById('slide-multi-input').click();">browse files</a></p>
+            <p style="margin:0;font-size:0.95rem;">Drag &amp; drop a ZIP or images here, or click to browse files</p>
             <input type="file" id="slide-zip-input" accept=".zip" style="display:none;">
             <input type="file" id="slide-multi-input" multiple accept=".png,.jpg,.jpeg,.webp" style="display:none;">
         </div>
