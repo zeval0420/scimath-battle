@@ -212,9 +212,10 @@ try {
                 $eventId, $questionId, $contestantId, $result, $adjustmentPoints, Auth::username(), $reason
             );
             api_ok([
-                'entry'    => $entry,
-                'scores'   => CompetitionRuntime::getScores($eventId, $questionId),
-                'rankings' => CompetitionRuntime::getRankings($eventId),
+                'entry'                   => $entry,
+                'scores'                  => CompetitionRuntime::getScores($eventId, $questionId),
+                'rankings'                => CompetitionRuntime::getRankings($eventId),
+                'last_scored_question_id' => ScoreEntry::lastScoredQuestionId($eventId),
             ]);
             break;
 

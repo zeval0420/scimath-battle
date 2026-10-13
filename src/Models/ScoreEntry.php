@@ -193,6 +193,29 @@ $stmt = $db->prepare(
     }
 
     /**
+     * Returns the question_id of the most recently scored question for this
+     * event, based on the latest scored_at timestamp. Returns null when no
+     * scores have been recorded yet.
+     */
+    public static function lastScoredQuestionId(int $eventId): ?int
+    {
+        $sql = <<<SQL
+            SELECT question_id
+            FROM scimath_score_entries
+            WHERE event_id = :event_id
+            ORDER BY scored_at DESC
+            LIMIT 1
+        SQL;
+
+        $stmt = self::db()->prepare($sql);
+        $stmt->execute(["event_id" => $eventId]);
+        $row = $stmt->fetch();
+
+        return $row !== false ? (int) $row["question_id"] : null;
+    }
+
+
+    /**
      * Full audit trail for one score entry (all corrections in order).
      */
     public static function history(int $scoreEntryId): array

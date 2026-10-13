@@ -8,6 +8,7 @@
     var csrfToken = root.getAttribute('data-csrf');
     var dashboard = JSON.parse(root.getAttribute('data-initial'));
     var allQuestions = JSON.parse(root.getAttribute('data-questions') || '[]');
+    var lastScoredQuestionId = parseInt(root.getAttribute('data-last-scored-question-id'), 10) || null;
 
     var POLL_MS = 1000;
     var pollTimer = null;
@@ -47,6 +48,10 @@
         return apiPost(action, params).then(function (res) {
             actionInFlight = false;
             if (triggerEl) triggerEl.disabled = false;
+
+            if (res.last_scored_question_id !== undefined) {
+                lastScoredQuestionId = res.last_scored_question_id;
+            }
 
             if (!res.ok) {
                 alert(res.error || 'Action failed.');
@@ -192,6 +197,29 @@
         // Slide preview strip + hide/show override toggle
         renderSlidePreview(state);
         renderQuestionToggle(state, q);
+
+        // Update results panel last-scored display
+        var lastQEl = document.getElementById('op-results-last-q');
+        if (lastQEl) {
+            if (lastScoredQuestionId) {
+                var lastQ = (state.current_question && String(state.current_question.id) === String(lastScoredQuestionId))
+                    ? state.current_question
+                    : findQuestionById(allQuestions, lastScoredQuestionId);
+                lastQEl.textContent = lastQ
+                    ? 'Q' + lastQ.question_number + (lastQ.round ? ' (' + roundLabel(lastQ.round) + ')' : '')
+                    : '—';
+            } else {
+                lastQEl.textContent = '—';
+            }
+        }
+
+        // Update action button disabled states
+        var btnShowQ = document.getElementById('op-btn-show-question');
+        var btnShowA = document.getElementById('op-btn-show-answer');
+        var btnShowR = document.getElementById('op-btn-show-results');
+        if (btnShowQ) btnShowQ.disabled = !state.is_active || q === null;
+        if (btnShowA) btnShowA.disabled = !state.is_active || q === null;
+        if (btnShowR) btnShowR.disabled = !state.is_active;
     }
 
     function renderSlidePreview(state) {
@@ -223,6 +251,13 @@
 
     function questionCaption(q) {
         return 'Q' + q.question_number + (q.round ? ' · ' + roundLabel(q.round) : '');
+    }
+
+    function findQuestionById(questions, id) {
+        for (var i = 0; i < questions.length; i++) {
+            if (String(questions[i].id) === String(id)) return questions[i];
+        }
+        return null;
     }
 
     function setSlideThumb(imgId, emptyId, captionId, q, captionText) {
@@ -342,6 +377,43 @@
         if (id) doAction('show_answer', { slide_id: id }, null);
     });
 
+    // ---- Question action buttons -----------------------------------------
+
+    document.getElementById('op-btn-show-question').addEventListener('click', function (e) {
+        doAction('show_question', {}, e.currentTarget);
+    });
+
+    document.getElementById('op-btn-show-answer').addEventListener('click', function (e) {
+        var qId = dashboard.state && dashboard.state.current_question ? dashboard.state.current_question.id : null;
+        if (!qId) return;
+        doAction('show_answer', { slide_id: qId }, e.currentTarget).then(function () {
+            // Also show results panel
+            var panel = document.getElementById('op-results-panel');
+            if (panel) { panel.style.display = ''; renderResultsPanel(); }
+        });
+    });
+
+    document.getElementById('op-btn-show-results').addEventListener('click', function (e) {
+        var round = document.getElementById('op-round-select').value || dashboard.state.current_round || 'easy';
+        doAction('show_round_ranking', { round: round }, e.currentTarget).then(function () {
+            var panel = document.getElementById('op-results-panel');
+            if (panel) { panel.style.display = ''; renderResultsPanel(); }
+        });
+    });
+
+    document.getElementById('op-btn-close-results').addEventListener('click', function () {
+        var panel = document.getElementById('op-results-panel');
+        if (panel) panel.style.display = 'none';
+    });
+
+    document.getElementById('op-btn-refresh-results').addEventListener('click', function () {
+        renderResultsPanel();
+    });
+
+    document.getElementById('op-results-round-select').addEventListener('change', function () {
+        renderResultsPanel();
+    });
+
     // ---- Component visibility menu ---------------------------------------
 
     var COMPONENT_STORAGE_KEY = 'op-components:' + eventId;
@@ -426,6 +498,72 @@
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && !menu.hidden) closeMenu();
         });
+    }
+
+    // ---- Results Panel ----------------------------------------------------
+
+    function renderResultsPanel() {
+        var wrap = document.getElementById('op-results-matrix-wrap');
+        if (!wrap) return;
+
+        var round = document.getElementById('op-results-round-select')
+            ? document.getElementById('op-results-round-select').value
+            : (dashboard.state.current_round || 'easy');
+        var roundLabelEl = document.getElementById('op-results-round-label');
+        if (roundLabelEl) roundLabelEl.textContent = roundLabel(round) + ' Round';
+
+        apiGet('report').then(function (res) {
+            if (!res.ok || !res.report) return;
+            var report = res.report;
+            var questions = report.questions || [];
+            var contestants = report.contestants || [];
+            var cells = report.cells || {};
+
+            var roundQuestions = questions.filter(function (q) { return q.round === round; });
+            if (roundQuestions.length === 0) {
+                wrap.innerHTML = '<p class="muted">No ' + roundLabel(round) + ' questions configured.</p>';
+                return;
+            }
+
+            var headTop = '<th class="name-col" rowspan="2">Team</th>';
+            headTop += '<th class="round-group" colspan="' + roundQuestions.length + '">' + roundLabel(round) + '</th>';
+            headTop += '<th class="total-col" rowspan="2">Total</th>';
+
+            var headBottom = '';
+            roundQuestions.forEach(function (q) {
+                var isHighlight = lastScoredQuestionId && String(q.id) === String(lastScoredQuestionId);
+                headBottom += '<th class="' + (isHighlight ? 'highlight-col' : '') + '">Q' + q.number + '</th>';
+            });
+
+            var body = contestants.map(function (c) {
+                var cellsHtml = '<td class="name-col">' + escapeHtml(c.name) + '</td>';
+                roundQuestions.forEach(function (q) {
+                    var entry = cells[c.id] && cells[c.id][q.id];
+                    var isHighlight = lastScoredQuestionId && String(q.id) === String(lastScoredQuestionId);
+                    var resultClass = '';
+                    if (isHighlight && entry) {
+                        if (entry.result === 'correct') resultClass = 'highlight-correct';
+                        else if (entry.result === 'incorrect' || entry.result === 'no_answer') resultClass = 'highlight-' + entry.result;
+                    }
+                    var val = entry ? entry.points_awarded : '—';
+                    cellsHtml += '<td class="' + (isHighlight ? 'highlight-col ' : '') + resultClass + '">' + val + '</td>';
+                });
+                cellsHtml += '<td class="total-col">' + c.total + '</td>';
+                return '<tr>' + cellsHtml + '</tr>';
+            }).join('');
+
+            wrap.innerHTML = '<table class="op-result-matrix">'
+                + '<thead><tr>' + headTop + '</tr><tr>' + headBottom + '</tr></thead>'
+                + '<tbody>' + body + '</tbody>'
+                + '</table>';
+        }).catch(function () {});
+    }
+
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        var d = document.createElement('div');
+        d.textContent = String(s);
+        return d.innerHTML;
     }
 
     // ---- Polling ----------------------------------------------------------

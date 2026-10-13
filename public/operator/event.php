@@ -58,7 +58,8 @@ require __DIR__ . '/../admin/includes/header.php';
      data-event-id="<?= $eventId ?>"
      data-csrf="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES) ?>"
      data-initial='<?= htmlspecialchars(json_encode($dashboard), ENT_QUOTES) ?>'
-     data-questions='<?= htmlspecialchars(json_encode($questionListPayload), ENT_QUOTES) ?>'>
+     data-questions='<?= htmlspecialchars(json_encode($questionListPayload), ENT_QUOTES) ?>'
+     data-last-scored-question-id='<?= $dashboard["last_scored_question_id"] ?? "null" ?>'>
 
     <div class="op-topbar">
         <div>
@@ -143,6 +144,12 @@ require __DIR__ . '/../admin/includes/header.php';
                     </figure>
                 </div>
 
+                <div class="op-action-buttons">
+                    <button type="button" class="btn btn-primary op-action-btn" id="op-btn-show-question" disabled>Show Question</button>
+                    <button type="button" class="btn btn-primary op-action-btn" id="op-btn-show-answer" disabled>Show Answer</button>
+                    <button type="button" class="btn btn-success op-action-btn" id="op-btn-show-results" disabled>Show Results</button>
+                </div>
+
                 <div class="op-toggle-row">
                     <span class="op-toggle-title">Show question on display</span>
                     <label class="op-switch">
@@ -210,6 +217,24 @@ require __DIR__ . '/../admin/includes/header.php';
                     </select>
                 </div>
             </div>
+        <div class="op-panel op-panel--wide" data-op-component="results" id="op-results-panel" style="display:none;">
+            <h2>Question Results &mdash; <span id="op-results-round-label">—</span></h2>
+            <div class="op-results-info">
+                <span>Most recently scored: <strong id="op-results-last-q">—</strong></span>
+            </div>
+            <div class="op-results-matrix-wrap" id="op-results-matrix-wrap">
+                <p class="muted">Click &ldquo;Show Results&rdquo; to display the round breakdown.</p>
+            </div>
+            <div class="op-nav-buttons" style="margin-top:14px;">
+                <button type="button" class="btn" id="op-btn-close-results">Close</button>
+                <select id="op-results-round-select" class="btn">
+                    <?php foreach (Round::ALL as $r): ?>
+                        <option value="<?= $r ?>"><?= htmlspecialchars(Round::label($r)) ?> Round</option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="button" class="btn btn-primary" id="op-btn-refresh-results">Refresh</button>
+            </div>
+        </div>
     </div>
 
     <p class="op-poll-indicator" id="op-poll-indicator">Live — updating every second</p>

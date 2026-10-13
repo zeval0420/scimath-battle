@@ -624,6 +624,7 @@ class CompetitionRuntime
             'current_question_scores' => $currentQuestionScores,
             'rankings'                => self::getRankings($eventId),
             'all_scores'              => $allScores,
+            'last_scored_question_id' => ScoreEntry::lastScoredQuestionId($eventId),
         ];
     }
 
