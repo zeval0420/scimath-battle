@@ -668,7 +668,7 @@ require __DIR__ . '/includes/header.php';
 <div class="tab-panel" data-tab-panel="slides">
     <div class="card">
         <h2>Batch Slide Upload</h2>
-        <p class="hint">Upload a ZIP file or multiple images at once. Classify each slide below, then save all at once. Answer slides are paired to question slides in order.</p>
+        <p class="hint">Upload a ZIP file or multiple images at once. Classify each slide below, then save all at once. Answer slides are paired to question slides in order. For question slides, you can also set the difficulty (Easy, Medium, Hard, or Clincher).</p>
 
         <div id="slide-upload-area" class="slide-drop-zone">
             <p style="margin:0;font-size:1rem;">Drag &amp; drop a ZIP or images here</p>
@@ -700,6 +700,7 @@ require __DIR__ . '/includes/header.php';
 
         <div id="slide-classify-panel" style="display:none;margin-top:20px;">
             <h3>Classify each slide</h3>
+            <p class="hint">When you select "Question Slide", a difficulty dropdown will appear. Answer slides auto-pair to question slides in order.</p>
             <div id="slide-classify-list"></div>
             <div class="btn-row" style="margin-top:20px;">
                 <button id="slide-save-all" class="btn btn-primary">Save All Slides</button>

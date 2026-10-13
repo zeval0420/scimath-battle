@@ -67,7 +67,8 @@
     }
 
     // ---- Batch Slide Upload -----------------------------------------
-    function initSlideUpload() {
+    // Can be called with an eventId parameter for use on index.php
+    function initSlideUpload(eventId) {
         var dropZone = document.getElementById('slide-upload-area');
         var zipInput = document.getElementById('slide-zip-input');
         var multiInput = document.getElementById('slide-multi-input');
@@ -83,6 +84,12 @@
         var progressBar = document.getElementById('slide-progress-bar');
         var progressText = document.getElementById('slide-progress-text');
         var progressPercent = document.getElementById('slide-progress-percent');
+
+        // Use provided eventId or get from URL
+        if (!eventId) {
+            var urlParams = new URLSearchParams(window.location.search);
+            eventId = urlParams.get('id');
+        }
 
         function showProgress(text) {
             if (progressEl) progressEl.style.display = 'block';
@@ -125,7 +132,7 @@
 
         var stagedImages = [];
         var sessionId = null;
-        var eventId = (new URLSearchParams(window.location.search)).get('id');
+        var eventId = null; // Set above from constructor param or URL
 
         // Show selected file names
         multiInput.addEventListener('change', function() {
@@ -327,22 +334,45 @@
                         '<option value="promotional">Promotional Slide</option>' +
                         '<option value="question">Question Slide</option>' +
                         '<option value="answer">Answer Slide</option>' +
+                    '</select>' +
+                    '<select class="slide-difficulty-select" data-index="' + img.index + '" style="width:auto;margin:0;display:none;">' +
+                        '<option value="easy">Easy</option>' +
+                        '<option value="medium">Medium</option>' +
+                        '<option value="hard">Hard</option>' +
+                        '<option value="clincher">Clincher</option>' +
                     '</select>';
                 classifyList.appendChild(row);
             });
             if (classifyPanel) classifyPanel.style.display = 'block';
             if (previewGrid) previewGrid.style.display = 'grid';
+            
+            // Toggle difficulty dropdown visibility based on type selection
+            classifyList.querySelectorAll('.slide-type-select').forEach(function(sel) {
+                sel.addEventListener('change', function() {
+                    var idx = this.dataset.index;
+                    var diffSel = classifyList.querySelector('.slide-difficulty-select[data-index="' + idx + '"]');
+                    if (diffSel) {
+                        diffSel.style.display = this.value === 'question' ? 'block' : 'none';
+                    }
+                });
+            });
         }
 
         if (saveBtn) {
             saveBtn.addEventListener('click', function() {
                 if (!classifyList) return;
-                var selects = classifyList.querySelectorAll('.slide-type-select');
+                var typeSelects = classifyList.querySelectorAll('.slide-type-select');
+                var diffSelects = classifyList.querySelectorAll('.slide-difficulty-select');
                 var classified = [];
                 var hasQuestion = false, hasAnswer = false, hasBanner = false;
-                selects.forEach(function(sel) {
+                typeSelects.forEach(function(sel, idx) {
                     if (!sel.value) return;
-                    classified.push({ index: parseInt(sel.dataset.index), type: sel.value });
+                    var item = { index: parseInt(sel.dataset.index), type: sel.value };
+                    // Get difficulty if question slide
+                    if (sel.value === 'question' && diffSelects[idx]) {
+                        item.difficulty = diffSelects[idx].value || 'easy';
+                    }
+                    classified.push(item);
                     if (sel.value === 'question') hasQuestion = true;
                     if (sel.value === 'answer') hasAnswer = true;
                     if (sel.value === 'banner') hasBanner = true;
@@ -362,6 +392,10 @@
                 form.append('save_banner', hasBanner ? '1' : '0');
                 form.append('slides', JSON.stringify(classified));
                 form.append('csrf_token', getCsrfToken());
+                // Add redirect_to if set (for single-page workflow)
+                if (window.__slide_upload_redirect_to) {
+                    form.append('redirect_to', window.__slide_upload_redirect_to);
+                }
                 fetch('actions/batch_save.php', { method: 'POST', body: form })
                     .then(function(r) {
                         if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t); });
@@ -373,7 +407,12 @@
                             result.created_promo + ' promo slide(s), ' +
                             result.created_answers + ' answer slide(s).' +
                             (result.banner_saved ? ' Banner saved.' : ''));
-                        setTimeout(function() { location.reload(); }, 1500);
+                        // If redirect_to is provided, navigate there; otherwise reload
+                        if (result.redirect_to) {
+                            window.location.href = result.redirect_to;
+                        } else {
+                            setTimeout(function() { location.reload(); }, 1500);
+                        }
                     })
                     .catch(function(err) { handleError(err.message); });
             });
@@ -413,4 +452,7 @@
         initImagePreviews();
         initSlideUpload();
     });
+
+    // Expose for use from other scripts (e.g. index.js)
+    window.initSlideUpload = initSlideUpload;
 })();

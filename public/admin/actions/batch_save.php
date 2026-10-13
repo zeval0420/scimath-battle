@@ -29,6 +29,7 @@ if ($event === null) {
 $sessionId = trim((string) ($_POST['session_id'] ?? ''));
 $saveBanner = isset($_POST['save_banner']) && $_POST['save_banner'] === '1';
 $slidesRaw = trim((string) ($_POST['slides'] ?? '[]'));
+$redirectUrl = trim((string) ($_POST['redirect_to'] ?? ''));
 $slides = json_decode($slidesRaw, true);
 
 if (!is_array($slides)) {
@@ -72,6 +73,7 @@ $bannerPath = null;
 foreach ($slides as $slide) {
     $idx = (int) ($slide['index'] ?? -1);
     $type = (string) ($slide['type'] ?? '');
+    $difficulty = (string) ($slide['difficulty'] ?? 'easy');
     $img = $stagedByIndex[$idx] ?? null;
     if ($img === null) {
         continue;
@@ -115,6 +117,7 @@ foreach ($slides as $slide) {
                 $questionItems[] = [
                     'image_path' => $qpath,
                     'is_active'  => true,
+                    'round'      => $difficulty,
                 ];
             } catch (RuntimeException $e) {
                 @unlink($img['tempPath']);
@@ -144,7 +147,7 @@ foreach ($slides as $slide) {
 $startNum = Question::nextQuestionNumber($eventId);
 foreach ($questionItems as $i => &$item) {
     $item['question_number'] = $startNum + $i;
-    $item['round'] = Round::EASY;
+    $item['round'] = $item['round'] ?? Round::EASY;
     $item['display_order'] = count(Question::forEvent($eventId)) + $i;
 }
 unset($item);
@@ -212,10 +215,16 @@ if ($bannerPath !== null) {
 
 unset($_SESSION[$sessionKey]);
 
-echo json_encode([
+$redirectUrl = trim((string) ($_POST['redirect_to'] ?? ''));
+$result = [
     'ok'               => true,
     'created_questions'=> count($createdQuestions),
     'created_promo'    => $createdPromo,
     'created_answers'  => $createdAnswers,
     'banner_saved'     => $bannerPath !== null,
-]);
+];
+if ($redirectUrl !== '') {
+    $result['redirect_to'] = $redirectUrl;
+}
+
+echo json_encode($result);
