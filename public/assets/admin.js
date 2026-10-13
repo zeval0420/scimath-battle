@@ -77,6 +77,7 @@
         var saveBtn = document.getElementById('slide-save-all');
         var clearBtn = document.getElementById('slide-clear-all');
         var statusEl = document.getElementById('slide-save-status');
+        var fileInfoEl = document.getElementById('slide-file-info');
 
         if (!dropZone) return;
 
@@ -84,29 +85,26 @@
         var sessionId = null;
         var eventId = (new URLSearchParams(window.location.search)).get('id');
 
-        // Click anywhere on drop zone to open file picker
-        dropZone.addEventListener('click', function(e) {
-            // Skip if button or label was clicked (they have their own handlers)
-            var target = e.target;
-            if (target.id === 'slide-browse-btn') return;
-            if (target.tagName === 'LABEL' || target.closest('label')) return;
-            multiInput.click();
-        });
-
+        // Show selected file names
         multiInput.addEventListener('change', function() {
             if (multiInput.files && multiInput.files.length > 0) {
+                var names = [];
+                for (var i = 0; i < multiInput.files.length; i++) {
+                    names.push(multiInput.files[i].name);
+                }
+                if (fileInfoEl) fileInfoEl.textContent = 'Selected: ' + names.join(', ');
                 handleFiles(multiInput.files);
-                multiInput.value = '';
             }
         });
 
         zipInput.addEventListener('change', function() {
             if (zipInput.files && zipInput.files.length > 0) {
+                if (fileInfoEl) fileInfoEl.textContent = 'Selected: ' + zipInput.files[0].name;
                 handleZip(zipInput.files[0]);
-                zipInput.value = '';
             }
         });
 
+        // Drag and drop
         dropZone.addEventListener('dragover', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -115,9 +113,7 @@
         dropZone.addEventListener('dragleave', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            if (!dropZone.contains(e.relatedTarget)) {
-                dropZone.classList.remove('drag-over');
-            }
+            dropZone.classList.remove('drag-over');
         });
         dropZone.addEventListener('drop', function(e) {
             e.preventDefault();
@@ -134,25 +130,44 @@
             }
         });
 
+        function log(msg) {
+            console.log('[slide-upload]', msg);
+            if (statusEl) statusEl.textContent = msg;
+        }
+
+        function handleError(msg) {
+            log('Error: ' + msg);
+            if (statusEl) {
+                statusEl.style.color = 'var(--error)';
+                statusEl.textContent = 'Error: ' + msg;
+                setTimeout(function() {
+                    statusEl.style.color = '';
+                }, 5000);
+            }
+        }
+
         function handleZip(file) {
+            log('Uploading ZIP: ' + file.name);
             var form = new FormData();
             form.append('upload', file);
             form.append('csrf_token', getCsrfToken());
             form.append('event_id', eventId || '');
-            setStatus('Uploading ZIP...');
-            fetch('/admin/actions/batch_upload.php', { method: 'POST', body: form })
-                .then(checkJson)
+            fetch('actions/batch_upload.php', { method: 'POST', body: form })
+                .then(function(r) {
+                    if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t); });
+                    return r.json();
+                })
                 .then(function(data) {
-                    if (data.error) { setStatus('Error: ' + data.error); return; }
+                    if (data.error) { handleError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
+                    log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
                 })
-                .catch(function(err) { setStatus('Upload failed: ' + err.message); });
+                .catch(function(err) { handleError(err.message); });
         }
 
         function handleFiles(files) {
-            // Separate zip from images
             var zipFile = null;
             var imageFiles = [];
             for (var i = 0; i < files.length; i++) {
@@ -168,39 +183,31 @@
             } else if (imageFiles.length > 0) {
                 uploadMulti(imageFiles);
             } else {
-                setStatus('No image files found. Please upload PNG, JPG, or WebP images.');
+                handleError('No valid image files found. Use PNG, JPG, or WebP.');
             }
         }
 
         function uploadMulti(files) {
+            log('Uploading ' + files.length + ' file(s)...');
             var form = new FormData();
             for (var i = 0; i < files.length; i++) {
                 form.append('files[]', files[i]);
             }
             form.append('csrf_token', getCsrfToken());
             form.append('event_id', eventId || '');
-            setStatus('Uploading ' + files.length + ' file(s)...');
-            fetch('/admin/actions/batch_upload.php', { method: 'POST', body: form })
-                .then(checkJson)
+            fetch('actions/batch_upload.php', { method: 'POST', body: form })
+                .then(function(r) {
+                    if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t); });
+                    return r.json();
+                })
                 .then(function(data) {
-                    if (data.error) { setStatus('Error: ' + data.error); return; }
+                    if (data.error) { handleError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
+                    log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
                 })
-                .catch(function(err) { setStatus('Upload failed: ' + err.message); });
-        }
-
-        function checkJson(r) {
-            if (!r.ok) {
-                return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t); });
-            }
-            return r.json();
-        }
-
-        function setStatus(msg) {
-            if (statusEl) statusEl.textContent = msg;
-            console.log('[slide-upload]', msg);
+                .catch(function(err) { handleError(err.message); });
         }
 
         function renderPreviews(images) {
@@ -230,7 +237,6 @@
             });
             if (classifyPanel) classifyPanel.style.display = 'block';
             if (previewGrid) previewGrid.style.display = 'grid';
-            setStatus(images.length + ' image(s) loaded. Classify each slide below.');
         }
 
         if (saveBtn) {
@@ -247,31 +253,34 @@
                     if (sel.value === 'banner') hasBanner = true;
                 });
                 if (classified.length === 0) {
-                    setStatus('Please classify at least one slide.');
+                    log('Please classify at least one slide.');
                     return;
                 }
                 if (hasAnswer && !hasQuestion) {
-                    setStatus('Answer slides require at least one question slide to pair with.');
+                    log('Answer slides require at least one question slide to pair with.');
                     return;
                 }
-                setStatus('Saving...');
+                log('Saving...');
                 var form = new FormData();
                 form.append('event_id', eventId);
                 form.append('session_id', sessionId);
                 form.append('save_banner', hasBanner ? '1' : '0');
                 form.append('slides', JSON.stringify(classified));
                 form.append('csrf_token', getCsrfToken());
-                fetch('/admin/actions/batch_save.php', { method: 'POST', body: form })
-                    .then(checkJson)
+                fetch('actions/batch_save.php', { method: 'POST', body: form })
+                    .then(function(r) {
+                        if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t); });
+                        return r.json();
+                    })
                     .then(function(result) {
-                        if (result.error) { setStatus('Error: ' + result.error); return; }
-                        setStatus('Saved ' + result.created_questions + ' question(s), ' +
-                                  result.created_promo + ' promo slide(s), ' +
-                                  result.created_answers + ' answer slide(s).' +
-                                  (result.banner_saved ? ' Banner saved.' : ''));
+                        if (result.error) { handleError(result.error); return; }
+                        log('Saved ' + result.created_questions + ' question(s), ' +
+                            result.created_promo + ' promo slide(s), ' +
+                            result.created_answers + ' answer slide(s).' +
+                            (result.banner_saved ? ' Banner saved.' : ''));
                         setTimeout(function() { location.reload(); }, 1500);
                     })
-                    .catch(function(err) { setStatus('Save failed: ' + err.message); });
+                    .catch(function(err) { handleError(err.message); });
             });
         }
 
@@ -283,7 +292,8 @@
                 if (classifyList) classifyList.innerHTML = '';
                 if (previewGrid) previewGrid.style.display = 'none';
                 if (classifyPanel) classifyPanel.style.display = 'none';
-                setStatus('');
+                if (statusEl) { statusEl.textContent = ''; statusEl.style.color = ''; }
+                if (fileInfoEl) fileInfoEl.textContent = '';
                 if (zipInput) zipInput.value = '';
                 if (multiInput) multiInput.value = '';
             });

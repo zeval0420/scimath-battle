@@ -672,18 +672,18 @@ require __DIR__ . '/includes/header.php';
 
         <div id="slide-upload-area" class="slide-drop-zone">
             <p style="margin:0;font-size:1rem;">Drag &amp; drop a ZIP or images here</p>
-            <p style="margin:8px 0 0;font-size:0.85rem;color:var(--text-secondary);">or</p>
-            <button type="button" id="slide-browse-btn" class="btn btn-primary" style="margin-top:8px;" onclick="document.getElementById('slide-multi-input').click();">Browse Files</button>
-            <div style="margin-top:8px;">
-                <label for="slide-multi-input" style="cursor:pointer;display:inline-block;">
+            <p style="margin:8px 0 0;font-size:0.85rem;color:var(--text-secondary);">or use one of these buttons:</p>
+            <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+                <label class="btn btn-primary" style="margin:0;cursor:pointer;">
+                    Select Images
                     <input type="file" id="slide-multi-input" multiple accept=".png,.jpg,.jpeg,.webp" style="display:none;">
-                    <button type="button" class="btn btn-small" style="margin:0;">Select Images</button>
                 </label>
-                <label for="slide-zip-input" style="cursor:pointer;display:inline-block;margin-left:8px;">
+                <label class="btn btn-primary" style="margin:0;cursor:pointer;">
+                    Select ZIP
                     <input type="file" id="slide-zip-input" accept=".zip" style="display:none;">
-                    <button type="button" class="btn btn-small" style="margin:0;">Select ZIP</button>
                 </label>
             </div>
+            <p id="slide-file-info" class="hint" style="margin-top:10px;"></p>
         </div>
 
         <div id="slide-preview-grid" class="slide-grid" style="display:none;"></div>
