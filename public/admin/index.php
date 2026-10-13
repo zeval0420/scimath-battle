@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         CompetitionSession::createFor((int) $event['id']);
 
         Flash::success("Event \"{$name}\" created. Configure it below.");
-        header('Location: ' . relative_url('/admin/event.php?id=' . $event['id']));
+        header('Location: ' . relative_url('/admin/event.php?id=' . $event['id'] . '#slides'));
         exit;
     }
 

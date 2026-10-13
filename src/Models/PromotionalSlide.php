@@ -11,6 +11,34 @@ class PromotionalSlide extends Model
         'display_order', 'is_active',
     ];
 
+    public static function createBatch(int $eventId, array $items): void
+    {
+        $db = self::db();
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare(
+                'INSERT INTO scimath_promotional_slides (event_id,title,description,file_path,' .
+                'file_type,display_order,is_active) VALUES (:event_id,:title,:description,' .
+                ':file_path,:file_type,:display_order,:is_active)'
+            );
+            foreach ($items as $index => $item) {
+                $stmt->execute([
+                    'event_id'     => $eventId,
+                    'title'        => trim($item['title']) !== '' ? $item['title'] : ('Slide ' . ($index + 1)),
+                    'description'  => trim($item['description']) !== '' ? $item['description'] : null,
+                    'file_path'    => $item['file_path'],
+                    'file_type'    => 'image',
+                    'display_order'=> $index,
+                    'is_active'    => $item['is_active'] ? 1 : 0,
+                ]);
+            }
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
+    }
+
     public static function forEvent(int $eventId, bool $activeOnly = false): array
     {
         $where = ['event_id' => $eventId];

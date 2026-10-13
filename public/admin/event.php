@@ -90,6 +90,7 @@ require __DIR__ . '/includes/header.php';
     <a class="tab-link" data-tab-link="contestants">Contestants (<?= count($event['contestants']) ?>)</a>
     <a class="tab-link" data-tab-link="questions">Questions (<?= count($event['questions']) ?>)</a>
     <a class="tab-link" data-tab-link="promotional">Promotional Slides</a>
+    <a class="tab-link" data-tab-link="slides">Slides</a>
     <a class="tab-link" data-tab-link="audio">Audio &amp; Media</a>
     <a class="tab-link" data-tab-link="settings">Scoring, Timing &amp; Presentation</a>
 </div>
@@ -659,6 +660,32 @@ require __DIR__ . '/includes/header.php';
                     <button type="submit" class="btn btn-primary">Add Slide</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SLIDES (BATCH UPLOAD) ===================== -->
+<div class="tab-panel" data-tab-panel="slides">
+    <div class="card">
+        <h2>Batch Slide Upload</h2>
+        <p class="hint">Upload a ZIP file or multiple images at once. Classify each slide below, then save all at once. Answer slides are paired to question slides in order.</p>
+
+        <div id="slide-upload-area" class="slide-drop-zone">
+            <p style="margin:0;font-size:0.95rem;">Drag &amp; drop a ZIP or images here, or <a href="#" id="slide-browse-btn" onclick="event.preventDefault();document.getElementById('slide-multi-input').click();">browse files</a></p>
+            <input type="file" id="slide-zip-input" accept=".zip" style="display:none;">
+            <input type="file" id="slide-multi-input" multiple accept=".png,.jpg,.jpeg,.webp" style="display:none;">
+        </div>
+
+        <div id="slide-preview-grid" class="slide-grid" style="display:none;"></div>
+
+        <div id="slide-classify-panel" style="display:none;margin-top:20px;">
+            <h3>Classify each slide</h3>
+            <div id="slide-classify-list"></div>
+            <div class="btn-row" style="margin-top:20px;">
+                <button id="slide-save-all" class="btn btn-primary">Save All Slides</button>
+                <button id="slide-clear-all" class="btn">Clear</button>
+            </div>
+            <div id="slide-save-status" class="hint" style="margin-top:8px;"></div>
         </div>
     </div>
 </div>

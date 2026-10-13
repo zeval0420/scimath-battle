@@ -84,6 +84,60 @@ class Uploader
     }
 
     /**
+     * Same validation + re-encode + write logic as handleImage(), but accepts
+     * a source path on disk rather than a $_FILES array element. Used by the
+     * batch-upload flow where files may have been extracted from a ZIP.
+     */
+    public static function handleImageFromPath(string $sourcePath, string $subdirectory, int $eventId): string
+    {
+        $config = require __DIR__ . '/../../config/app.php';
+        $rules = $config['uploads'];
+
+        if (!is_file($sourcePath) || !is_uploaded_file($sourcePath) && !self::isAccessibleFile($sourcePath)) {
+            throw new RuntimeException('Invalid source file.');
+        }
+
+        self::assertWithinSizeLimitFromFile($sourcePath, $rules['max_bytes']);
+
+        $detectedMime = self::detectRealMimeType($sourcePath);
+        if (!isset($rules['allowed_mime_types'][$detectedMime])) {
+            throw new RuntimeException(
+                'Unsupported file type. Please upload a PNG, JPG/JPEG, or WebP image.'
+            );
+        }
+        $extension = $rules['allowed_mime_types'][$detectedMime];
+
+        $imageInfo = @getimagesize($sourcePath);
+        if ($imageInfo === false) {
+            throw new RuntimeException('The uploaded file is not a valid image.');
+        }
+
+        $image = self::loadImageResource($sourcePath, $detectedMime);
+        if ($image === false) {
+            throw new RuntimeException('The uploaded image could not be processed. It may be corrupted.');
+        }
+
+        $targetDir = rtrim($rules['base_path'], '/') . '/' . $subdirectory . '/' . $eventId;
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) {
+            throw new RuntimeException('Could not create the upload directory.');
+        }
+
+        $filename = bin2hex(random_bytes(16)) . '.' . $extension;
+        $destination = $targetDir . '/' . $filename;
+
+        $written = self::writeImageResource($image, $destination, $detectedMime);
+        imagedestroy($image);
+
+        if (!$written) {
+            throw new RuntimeException('Failed to save the uploaded image.');
+        }
+
+        chmod($destination, 0644);
+
+        return $rules['base_url'] . '/' . $subdirectory . '/' . $eventId . '/' . $filename;
+    }
+
+    /**
      * Deletes a previously stored upload (identified by the relative path
      * returned from handleImage()). Silently no-ops if the path is empty or
      * the file no longer exists -- callers use this when replacing or
@@ -114,6 +168,20 @@ class Uploader
         $fullPath = rtrim($rules['base_path'], '/') . '/' . $withinBase;
         if (is_file($fullPath)) {
             @unlink($fullPath);
+        }
+    }
+
+    private static function isAccessibleFile(string $path): bool
+    {
+        return is_file($path) && is_readable($path);
+    }
+
+    private static function assertWithinSizeLimitFromFile(string $path, int $maxBytes): void
+    {
+        $size = filesize($path);
+        if ($size <= 0 || $size > $maxBytes) {
+            $maxMb = round($maxBytes / (1024 * 1024), 1);
+            throw new RuntimeException("The file must be a valid image no larger than {$maxMb} MB.");
         }
     }
 

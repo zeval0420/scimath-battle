@@ -10,6 +10,32 @@ class AnswerSlide extends Model
         'event_id', 'question_id', 'image_path', 'display_order', 'is_active',
     ];
 
+    public static function createBatch(int $eventId, array $items): void
+    {
+        $db = self::db();
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare(
+                'INSERT INTO scimath_answer_slides (event_id,question_id,image_path,' .
+                'display_order,is_active) VALUES (:event_id,:question_id,:image_path,' .
+                ':display_order,:is_active)'
+            );
+            foreach ($items as $index => $item) {
+                $stmt->execute([
+                    'event_id'     => $eventId,
+                    'question_id'  => $item['question_id'] ?: null,
+                    'image_path'   => $item['image_path'],
+                    'display_order'=> $index,
+                    'is_active'    => $item['is_active'] ? 1 : 0,
+                ]);
+            }
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
+    }
+
     public static function forEvent(int $eventId, bool $activeOnly = false): array
     {
         $where = ['event_id' => $eventId];

@@ -77,6 +77,42 @@ class Question extends Model
             : (int) $eventSettings['default_time_seconds'];
     }
 
+    public static function createBatch(int $eventId, array $items): array
+    {
+        $db = self::db();
+        $db->beginTransaction();
+        $inserted = [];
+        try {
+            $stmt = $db->prepare(
+                'INSERT INTO scimath_questions (event_id,category_id,round,question_number,' .
+                'image_path,answer_image_path,points,time_seconds,is_active,display_order) ' .
+                'VALUES (:event_id,:category_id,:round,:question_number,:image_path,' .
+                ':answer_image_path,:points,:time_seconds,:is_active,:display_order)'
+            );
+            foreach ($items as $index => $item) {
+                $stmt->execute([
+                    'event_id'          => $eventId,
+                    'category_id'       => $item['category_id'] ?: null,
+                    'round'             => $item['round'] ?? Round::EASY,
+                    'question_number'   => (int) $item['question_number'],
+                    'image_path'        => $item['image_path'],
+                    'answer_image_path' => $item['answer_image_path'] ?? null,
+                    'points'            => $item['points'] ?: null,
+                    'time_seconds'      => $item['time_seconds'] ?: null,
+                    'is_active'         => $item['is_active'] ? 1 : 0,
+                    'display_order'     => $index,
+                ]);
+                $inserted[] = self::findOrFail((int) $db->lastInsertId());
+            }
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollBack();
+            throw $e;
+        }
+
+        return $inserted;
+    }
+
     public static function nextQuestionNumber(int $eventId): int
     {
 $stmt = self::db()->prepare(
