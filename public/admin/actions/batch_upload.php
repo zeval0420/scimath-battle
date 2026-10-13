@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../../src/bootstrap.php';
 Auth::requireAdmin();
 
 header('Content-Type: application/json');
+error_log('batch_upload: Request received. Method: ' . $_SERVER['REQUEST_METHOD']);
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -14,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 if (!Csrf::check()) {
     http_response_code(419);
     ob_clean();
+    error_log('batch_upload: CSRF check failed. Session token: ' . ($_SESSION['csrf_token'] ?? 'NONE') . ', Posted: ' . ($_POST['csrf_token'] ?? 'NONE'));
     echo json_encode(['error' => 'Security check failed. Please refresh the page and try again.']);
     exit;
 }
@@ -88,12 +90,15 @@ $errors = [];
 // ---- Single ZIP upload -----------------------------------------------
 if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
     $zipPath = $_FILES['upload']['tmp_name'];
+    error_log('batch_upload: ZIP upload received. Size: ' . $_FILES['upload']['size'] . ', Temp: ' . $zipPath);
+    
     $zip = new ZipArchive();
     if ($zip->open($zipPath) !== true) {
         ob_clean();
         echo json_encode(['error' => 'Could not open ZIP file. Make sure it is a valid ZIP archive.']);
         exit;
     }
+    error_log('batch_upload: ZIP opened successfully. Files: ' . $zip->numFiles);
 
     for ($i = 0; $i < $zip->numFiles; $i++) {
         $entry = $zip->statIndex($i);
@@ -162,9 +167,17 @@ if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
 
 // ---- Nothing uploaded ------------------------------------------------
 } else {
+    error_log('batch_upload: No upload received. FILES keys: ' . print_r(array_keys($_FILES), true));
     ob_clean();
     echo json_encode(['error' => 'No files provided. Drag and drop files or click to browse.']);
     exit;
+}
+
+error_log('batch_upload: Staged ' . count($staged) . ' images. Errors: ' . count($errors));
+if ($errors) {
+    foreach ($errors as $err) {
+        error_log('batch_upload: Error: ' . $err);
+    }
 }
 
 if ($staged === []) {
@@ -178,6 +191,7 @@ $_SESSION['batch_upload_' . $sessionId] = [
     'errors' => $errors,
     'created_at' => time(),
 ];
+error_log('batch_upload: Session stored. Session key: batch_upload_' . $sessionId . ', Images: ' . count($staged));
 
 // Clean up staged entries older than 30 minutes
 foreach ($_SESSION as $key => $value) {
@@ -193,4 +207,9 @@ echo json_encode([
     'sessionId' => $sessionId,
     'images'    => $staged,
     'errors'    => $errors,
+    'debug'     => [
+        'staged_count' => count($staged),
+        'error_count'  => count($errors),
+        'session_key'  => 'batch_upload_' . $sessionId,
+    ],
 ]);

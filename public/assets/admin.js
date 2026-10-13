@@ -78,6 +78,27 @@
         var clearBtn = document.getElementById('slide-clear-all');
         var statusEl = document.getElementById('slide-save-status');
         var fileInfoEl = document.getElementById('slide-file-info');
+        var errorEl = document.getElementById('slide-upload-error');
+
+        function showError(msg) {
+            console.error('[slide-upload] Error:', msg);
+            if (errorEl) {
+                errorEl.textContent = msg;
+                errorEl.style.display = 'block';
+            }
+            if (statusEl) {
+                statusEl.style.color = 'var(--error)';
+                statusEl.textContent = 'Error: ' + msg;
+            }
+        }
+
+        function clearError() {
+            if (errorEl) errorEl.style.display = 'none';
+            if (statusEl) {
+                statusEl.style.color = '';
+                statusEl.textContent = '';
+            }
+        }
 
         if (!dropZone) return;
 
@@ -136,35 +157,44 @@
         }
 
         function handleError(msg) {
-            log('Error: ' + msg);
-            if (statusEl) {
-                statusEl.style.color = 'var(--error)';
-                statusEl.textContent = 'Error: ' + msg;
-                setTimeout(function() {
-                    statusEl.style.color = '';
-                }, 5000);
-            }
+            showError(msg);
         }
 
         function handleZip(file) {
-            log('Uploading ZIP: ' + file.name);
+            log('Uploading ZIP: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)');
+            var csrf = getCsrfToken();
+            console.log('[slide-upload] CSRF token present:', !!csrf);
+            console.log('[slide-upload] Event ID:', eventId);
+            
+            if (!csrf) {
+                handleError('CSRF token missing. Please refresh the page.');
+                return;
+            }
+            
             var form = new FormData();
             form.append('upload', file);
-            form.append('csrf_token', getCsrfToken());
+            form.append('csrf_token', csrf);
             form.append('event_id', eventId || '');
+            
+            console.log('[slide-upload] Sending request...');
             fetch('actions/batch_upload.php', { method: 'POST', body: form })
                 .then(function(r) {
-                    if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t); });
+                    console.log('[slide-upload] Response status:', r.status, 'OK?', r.ok);
+                    if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 300)); });
                     return r.json();
                 })
                 .then(function(data) {
+                    console.log('[slide-upload] Response data:', JSON.stringify(data).substring(0, 500));
                     if (data.error) { handleError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
                     log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
                 })
-                .catch(function(err) { handleError(err.message); });
+                .catch(function(err) { 
+                    console.error('[slide-upload] Fetch error:', err);
+                    handleError(err.message); 
+                });
         }
 
         function handleFiles(files) {
@@ -178,6 +208,7 @@
                     imageFiles.push(files[i]);
                 }
             }
+            console.log('[slide-upload] Files received:', files.length, 'ZIP:', zipFile ? zipFile.name : 'none', 'Images:', imageFiles.length);
             if (zipFile) {
                 handleZip(zipFile);
             } else if (imageFiles.length > 0) {
@@ -294,6 +325,7 @@
                 if (classifyPanel) classifyPanel.style.display = 'none';
                 if (statusEl) { statusEl.textContent = ''; statusEl.style.color = ''; }
                 if (fileInfoEl) fileInfoEl.textContent = '';
+                clearError();
                 if (zipInput) zipInput.value = '';
                 if (multiInput) multiInput.value = '';
             });

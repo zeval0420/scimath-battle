@@ -684,6 +684,7 @@ require __DIR__ . '/includes/header.php';
                 </label>
             </div>
             <p id="slide-file-info" class="hint" style="margin-top:10px;"></p>
+            <p id="slide-upload-error" class="alert alert-error" style="display:none;margin-top:10px;text-align:left;"></p>
         </div>
 
         <div id="slide-preview-grid" class="slide-grid" style="display:none;"></div>
