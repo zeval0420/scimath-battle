@@ -86,6 +86,10 @@
 
         // Click anywhere on drop zone to open file picker
         dropZone.addEventListener('click', function(e) {
+            // Skip if button or label was clicked (they have their own handlers)
+            var target = e.target;
+            if (target.id === 'slide-browse-btn') return;
+            if (target.tagName === 'LABEL' || target.closest('label')) return;
             multiInput.click();
         });
 

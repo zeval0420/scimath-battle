@@ -671,9 +671,19 @@ require __DIR__ . '/includes/header.php';
         <p class="hint">Upload a ZIP file or multiple images at once. Classify each slide below, then save all at once. Answer slides are paired to question slides in order.</p>
 
         <div id="slide-upload-area" class="slide-drop-zone">
-            <p style="margin:0;font-size:0.95rem;">Drag &amp; drop a ZIP or images here, or click to browse files</p>
-            <input type="file" id="slide-zip-input" accept=".zip" style="display:none;">
-            <input type="file" id="slide-multi-input" multiple accept=".png,.jpg,.jpeg,.webp" style="display:none;">
+            <p style="margin:0;font-size:1rem;">Drag &amp; drop a ZIP or images here</p>
+            <p style="margin:8px 0 0;font-size:0.85rem;color:var(--text-secondary);">or</p>
+            <button type="button" id="slide-browse-btn" class="btn btn-primary" style="margin-top:8px;" onclick="document.getElementById('slide-multi-input').click();">Browse Files</button>
+            <div style="margin-top:8px;">
+                <label for="slide-multi-input" style="cursor:pointer;display:inline-block;">
+                    <input type="file" id="slide-multi-input" multiple accept=".png,.jpg,.jpeg,.webp" style="display:none;">
+                    <button type="button" class="btn btn-small" style="margin:0;">Select Images</button>
+                </label>
+                <label for="slide-zip-input" style="cursor:pointer;display:inline-block;margin-left:8px;">
+                    <input type="file" id="slide-zip-input" accept=".zip" style="display:none;">
+                    <button type="button" class="btn btn-small" style="margin:0;">Select ZIP</button>
+                </label>
+            </div>
         </div>
 
         <div id="slide-preview-grid" class="slide-grid" style="display:none;"></div>
