@@ -42,6 +42,7 @@
 
     var lastActiveState = null;
     function setActiveSection(stateName) {
+        if (stateName === 'answer') stateName = 'question';
         if (stateName === lastActiveState) return;
         document.querySelectorAll('.disp-state').forEach(function (el) {
             el.classList.toggle('is-active', el.getAttribute('data-state-section') === stateName);
@@ -65,12 +66,16 @@
         if (!q) return;
 
         var catEl = document.getElementById('disp-q-category');
-        catEl.textContent = q.category || '';
-        catEl.style.visibility = (presentation.show_category && q.category) ? 'visible' : 'hidden';
+        if (catEl) {
+            catEl.textContent = q.category || '';
+            catEl.style.visibility = (presentation.show_category && q.category) ? 'visible' : 'hidden';
+        }
 
         var numEl = document.getElementById('disp-q-number');
-        numEl.textContent = 'Question ' + q.question_number;
-        numEl.style.visibility = presentation.show_question_number ? 'visible' : 'hidden';
+        if (numEl) {
+            numEl.textContent = 'Question ' + q.question_number;
+            numEl.style.visibility = presentation.show_question_number ? 'visible' : 'hidden';
+        }
 
         var roundEl = document.getElementById('disp-q-round');
         if (roundEl) {
@@ -80,19 +85,20 @@
             roundEl.style.visibility = rl ? 'visible' : 'hidden';
         }
 
-        document.getElementById('disp-timer').parentElement.style.visibility = presentation.show_timer ? 'visible' : 'hidden';
+        var timerWrap = document.getElementById('disp-timer');
+        if (timerWrap && timerWrap.parentElement) {
+            timerWrap.parentElement.style.visibility = presentation.show_timer ? 'visible' : 'hidden';
+        }
 
         var img = document.getElementById('disp-q-image') || document.getElementById('dsp-q-image');
         if (img) {
-            var imagePath = (isAnswer && q.answer_image_path) ? q.answer_image_path : q.image_path;
-            if (imagePath) {
-                var cleanPath = String(imagePath).trim();
-                var newSrc = (cleanPath.startsWith('http://') || cleanPath.startsWith('https://') || cleanPath.startsWith('/'))
-                    ? cleanPath
-                    : '../' + cleanPath.replace(/^\.?\//, '');
-                if (img.getAttribute('src') !== newSrc) {
-                    img.src = newSrc;
-                }
+            var rawPath = (isAnswer && q.answer_image_path) ? q.answer_image_path : q.image_path;
+            if (rawPath) {
+                var clean = String(rawPath).trim();
+                var newSrc = (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('data:') || clean.startsWith('/'))
+                    ? clean
+                    : '../' + clean.replace(/^\.?\//, '');
+                img.src = newSrc;
                 img.style.display = '';
             } else {
                 img.removeAttribute('src');

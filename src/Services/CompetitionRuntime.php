@@ -74,9 +74,8 @@ class CompetitionRuntime
         $answerSlide = null;
         $promotionalSlide = null;
 
-        if ($session['display_state'] === DisplayState::ANSWER) {
-            // You need to persist the selected slide ID in the session
-            // for this lookup to work.
+        if ($session['display_state'] === DisplayState::ANSWER && $currentQuestion !== null && !empty($currentQuestion['answer_image_path'])) {
+            $currentQuestion['image_path'] = $currentQuestion['answer_image_path'];
         }
 
         if ($session['display_state'] === DisplayState::PROMOTIONAL) {

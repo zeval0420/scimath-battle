@@ -855,15 +855,6 @@
 
     
     document.getElementById('op-btn-show-answer').addEventListener('click', function (e) {
-        var q = dashboard.state && dashboard.state.current_question;
-        doAction('show_answer', {}, e.currentTarget);
-        if (!q) return;
-
-        if (!q.answer_image_path) {
-            alert('No answer image configured for this question.');
-            return;
-        }
-
         doAction('show_answer', {}, e.currentTarget);
     });
 
