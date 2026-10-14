@@ -86,6 +86,12 @@
         var progressBar = document.getElementById('slide-progress-bar');
         var progressText = document.getElementById('slide-progress-text');
         var progressPercent = document.getElementById('slide-progress-percent');
+        // New file status elements
+        var fileStatusEl = document.getElementById('slide-file-status');
+        var statusFilenameEl = document.getElementById('slide-status-filename');
+        var statusSizeEl = document.getElementById('slide-status-size');
+        var statusBadgeEl = document.getElementById('slide-status-badge');
+        var clearFileBtn = document.getElementById('slide-clear-file');
 
         console.log('[slide-upload] DOM elements found:', {
             dropZone: !!dropZone,
@@ -102,7 +108,12 @@
             progressEl: !!progressEl,
             progressBar: !!progressBar,
             progressText: !!progressText,
-            progressPercent: !!progressPercent
+            progressPercent: !!progressPercent,
+            fileStatusEl: !!fileStatusEl,
+            statusFilenameEl: !!statusFilenameEl,
+            statusSizeEl: !!statusSizeEl,
+            statusBadgeEl: !!statusBadgeEl,
+            clearFileBtn: !!clearFileBtn
         });
 
         if (!dropZone) {
@@ -164,14 +175,17 @@
             console.log('[slide-upload] multiInput change event fired');
             if (multiInput.files && multiInput.files.length > 0) {
                 var names = [];
+                var totalSize = 0;
                 for (var i = 0; i < multiInput.files.length; i++) {
                     names.push(multiInput.files[i].name);
+                    totalSize += multiInput.files[i].size;
                 }
                 console.log('[slide-upload] Selected files:', names);
-                if (fileInfoEl) fileInfoEl.textContent = 'Selected: ' + names.join(', ');
+                showFileStatus(names.join(', '), totalSize);
                 handleFiles(multiInput.files);
             } else {
                 console.log('[slide-upload] No files in multiInput');
+                hideFileStatus();
             }
         });
 
@@ -179,12 +193,32 @@
             console.log('[slide-upload] zipInput change event fired');
             if (zipInput.files && zipInput.files.length > 0) {
                 console.log('[slide-upload] ZIP file selected:', zipInput.files[0].name, 'size:', zipInput.files[0].size);
-                if (fileInfoEl) fileInfoEl.textContent = 'Selected: ' + zipInput.files[0].name;
+                showFileStatus(zipInput.files[0].name, zipInput.files[0].size, 'zip');
                 handleZip(zipInput.files[0]);
             } else {
                 console.log('[slide-upload] No files in zipInput');
+                hideFileStatus();
             }
         });
+
+        function showFileStatus(name, size, type) {
+            if (!fileStatusEl || !statusFilenameEl || !statusSizeEl || !statusBadgeEl) return;
+            statusFilenameEl.textContent = name;
+            statusSizeEl.textContent = formatSize(size);
+            statusBadgeEl.textContent = type === 'zip' ? 'ZIP Archive' : (type === 'multi' ? 'Multiple Images' : 'Image');
+            statusBadgeEl.className = 'badge badge-ready';
+            fileStatusEl.style.display = 'block';
+        }
+
+        function hideFileStatus() {
+            if (fileStatusEl) fileStatusEl.style.display = 'none';
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
 
         // Drag and drop
         dropZone.addEventListener('dragover', function(e) {
@@ -206,8 +240,12 @@
 
             // If exactly one ZIP, use zip handler; otherwise multi
             if (files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')) {
+                showFileStatus(files[0].name, files[0].size, 'zip');
                 handleZip(files[0]);
             } else {
+                var totalSize = 0;
+                for (var i = 0; i < files.length; i++) totalSize += files[i].size;
+                showFileStatus(files.length + ' file(s)', totalSize, 'multi');
                 handleFiles(files);
             }
         });
@@ -474,6 +512,15 @@
             });
         }
 
+        // Clear file button handler
+        if (clearFileBtn) {
+            clearFileBtn.addEventListener('click', function() {
+                hideFileStatus();
+                if (multiInput) multiInput.value = '';
+                if (zipInput) zipInput.value = '';
+            });
+        }
+
         if (clearBtn) {
             clearBtn.addEventListener('click', function() {
                 stagedImages = [];
@@ -484,6 +531,7 @@
                 if (classifyPanel) classifyPanel.style.display = 'none';
                 if (statusEl) { statusEl.textContent = ''; statusEl.style.color = ''; }
                 if (fileInfoEl) fileInfoEl.textContent = '';
+                hideFileStatus();
                 clearError();
                 if (zipInput) zipInput.value = '';
                 if (multiInput) multiInput.value = '';

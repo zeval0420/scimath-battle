@@ -76,7 +76,7 @@ require __DIR__ . '/includes/header.php';
                         <?php if (isset($errors['event_date'])): ?><div class="error"><?= htmlspecialchars($errors['event_date']) ?></div><?php endif; ?>
                     </div>
                     <p class="hint">Fill in the details, then upload your slides — all on one page.</p>
-                    <button type="submit" class="btn btn-primary" id="btn-create-event">Create Event &amp; Upload Slides</button>
+                    <button type="submit" class="btn btn-primary" id="btn-create-event">Create Event & Upload Slides</button>
                 </form>
                 <div id="create-error" class="alert alert-error" style="display:none;margin-top:12px;"></div>
             </div>
@@ -89,7 +89,7 @@ require __DIR__ . '/includes/header.php';
             <input type="hidden" id="slide-event-id" value="<?= $eventIdToShow ?>">
 
             <div id="slide-upload-area" class="slide-drop-zone">
-                <p style="margin:0;font-size:1rem;">Drag &amp; drop a ZIP or images here</p>
+                <p style="margin:0;font-size:1rem;">Drag & drop a ZIP or images here</p>
                 <p style="margin:8px 0 0;font-size:0.85rem;color:var(--text-secondary);">or use one of these buttons:</p>
                 <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
                     <label class="btn btn-primary" style="margin:0;cursor:pointer;">
@@ -101,6 +101,19 @@ require __DIR__ . '/includes/header.php';
                         <input type="file" id="slide-zip-input" accept=".zip" style="display:none;">
                     </label>
                 </div>
+                
+                <!-- Explicit file status display -->
+                <div id="slide-file-status" style="margin-top:16px;padding:12px;background:var(--input-bg);border-radius:8px;display:none;">
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:200px;">
+                            <strong id="slide-status-filename" style="display:block;font-size:0.9rem;"></strong>
+                            <span id="slide-status-size" style="font-size:0.75rem;color:var(--text-secondary);"></span>
+                        </div>
+                        <span id="slide-status-badge" class="badge badge-draft" style="white-space:nowrap;">Selected</span>
+                        <button type="button" id="slide-clear-file" class="btn btn-small" style="margin-left:8px;">Remove</button>
+                    </div>
+                </div>
+                
                 <p id="slide-file-info" class="hint" style="margin-top:10px;"></p>
                 <div id="slide-upload-progress" style="display:none;margin-top:10px;">
                     <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
