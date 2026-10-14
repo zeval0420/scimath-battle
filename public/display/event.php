@@ -49,7 +49,19 @@ $audioConfig = EventSetting::audioConfig($settings ?? []);
             <div class="disp-timer" id="disp-timer">--:--</div>
         </div>
         <div class="disp-question-stage">
-            <img id="disp-q-image" class="disp-question-image" alt="Question">
+            <?php
+            $initialImgSrc = '';
+            if (!empty($publicState['current_question'])) {
+                $isInitialAnswer = ($publicState['display_state'] ?? '') === 'answer';
+                $imgPath = ($isInitialAnswer && !empty($publicState['current_question']['answer_image_path']))
+                    ? $publicState['current_question']['answer_image_path']
+                    : ($publicState['current_question']['image_path'] ?? '');
+                if ($imgPath !== '') {
+                    $initialImgSrc = '../' . ltrim($imgPath, '/');
+                }
+            }
+            ?>
+            <img id="disp-q-image" class="disp-question-image" alt="Question"<?= $initialImgSrc !== '' ? ' src="' . htmlspecialchars($initialImgSrc, ENT_QUOTES) . '"' : '' ?>>
         </div>
         <div class="disp-timeup-overlay" id="disp-timeup-overlay">
             <?php if (!empty($audioConfig['times_up_image_path'])): ?>

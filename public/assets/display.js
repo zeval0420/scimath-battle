@@ -82,10 +82,23 @@
 
         document.getElementById('disp-timer').parentElement.style.visibility = presentation.show_timer ? 'visible' : 'hidden';
 
-        var img = document.getElementById('disp-q-image');
-        var imagePath = (isAnswer && q.answer_image_path) ? q.answer_image_path : q.image_path;
-        var newSrc = '../' + imagePath;
-        if (!img.src.endsWith(newSrc)) img.src = newSrc;
+        var img = document.getElementById('disp-q-image') || document.getElementById('dsp-q-image');
+        if (img) {
+            var imagePath = (isAnswer && q.answer_image_path) ? q.answer_image_path : q.image_path;
+            if (imagePath) {
+                var cleanPath = String(imagePath).trim();
+                var newSrc = (cleanPath.startsWith('http://') || cleanPath.startsWith('https://') || cleanPath.startsWith('/'))
+                    ? cleanPath
+                    : '../' + cleanPath.replace(/^\.?\//, '');
+                if (img.getAttribute('src') !== newSrc) {
+                    img.src = newSrc;
+                }
+                img.style.display = '';
+            } else {
+                img.removeAttribute('src');
+                img.style.display = 'none';
+            }
+        }
     }
 
     function renderTimer(displayState) {

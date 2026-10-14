@@ -293,8 +293,19 @@
 
             var img = document.getElementById('op-q-preview');
             var imagePath = (state.display_state === 'answer' && q.answer_image_path) ? q.answer_image_path : q.image_path;
-            img.src = '../' + imagePath;
-            img.style.display = '';
+            if (imagePath) {
+                var cleanPath = String(imagePath).trim();
+                var newSrc = (cleanPath.startsWith('http://') || cleanPath.startsWith('https://') || cleanPath.startsWith('/'))
+                    ? cleanPath
+                    : '../' + cleanPath.replace(/^\.?\//, '');
+                if (img.getAttribute('src') !== newSrc) {
+                    img.src = newSrc;
+                }
+                img.style.display = '';
+            } else {
+                img.removeAttribute('src');
+                img.style.display = 'none';
+            }
             document.getElementById('op-q-none').style.display = 'none';
 
         } else {
