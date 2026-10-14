@@ -12,8 +12,8 @@ $preview = !empty($_GET['preview']);
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Display</title>
-  <link rel="stylesheet" href="../src/universal/components.css">
-  <link rel="stylesheet" href="display.css">
+  <link rel="stylesheet" href="../src/universal/components.css?v=<?= filemtime(__DIR__ . '/../src/universal/components.css') ?>">
+  <link rel="stylesheet" href="display.css?v=<?= filemtime(__DIR__ . '/display.css') ?>">
 </head>
 <body class="display-body" data-event="<?= $eventId ?>" data-preview="<?= $preview ? 1 : 0 ?>">
 

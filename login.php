@@ -30,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login - IRC QUEST</title>
-  <link rel="stylesheet" href="src/universal/components.css">
-  <link rel="stylesheet" href="src/universal/HeadFoot.css">
+  <link rel="stylesheet" href="src/universal/components.css?v=<?= filemtime(__DIR__ . '/src/universal/components.css') ?>">
+  <link rel="stylesheet" href="src/universal/HeadFoot.css?v=<?= filemtime(__DIR__ . '/src/universal/HeadFoot.css') ?>">
   <style>
     body { background: linear-gradient(to right, #0e0054, #0036af, #0e0054); }
     .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px var(--pad); }

@@ -32,9 +32,9 @@ $sections = [
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Configure - <?= h($event['name']) ?></title>
-  <link rel="stylesheet" href="../src/universal/components.css">
-  <link rel="stylesheet" href="../src/universal/HeadFoot.css">
-  <link rel="stylesheet" href="configure.css">
+  <link rel="stylesheet" href="../src/universal/components.css?v=<?= filemtime(__DIR__ . '/../src/universal/components.css') ?>">
+  <link rel="stylesheet" href="../src/universal/HeadFoot.css?v=<?= filemtime(__DIR__ . '/../src/universal/HeadFoot.css') ?>">
+  <link rel="stylesheet" href="configure.css?v=<?= filemtime(__DIR__ . '/configure.css') ?>">
 </head>
 <body class="app-body" data-event="<?= $eventId ?>">
 <?php

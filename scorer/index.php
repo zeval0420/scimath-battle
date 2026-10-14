@@ -36,8 +36,8 @@ $payload = [
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Scorer - <?= h($event['name']) ?></title>
-  <link rel="stylesheet" href="../src/universal/components.css">
-  <link rel="stylesheet" href="../src/universal/HeadFoot.css">
+  <link rel="stylesheet" href="../src/universal/components.css?v=<?= filemtime(__DIR__ . '/../src/universal/components.css') ?>">
+  <link rel="stylesheet" href="../src/universal/HeadFoot.css?v=<?= filemtime(__DIR__ . '/../src/universal/HeadFoot.css') ?>">
   <style>
     .event-name { margin: 0; font-size: 26px; font-weight: 700; }
     .sync { font-size: 13px; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 6px; }
