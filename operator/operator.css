@@ -9,7 +9,6 @@
 .screen-frame {
   position: relative;
   width: 100%;
-  max-width: 720px;
   margin: 0 auto;
   aspect-ratio: 16 / 9;
   overflow: hidden;
@@ -80,3 +79,16 @@
 .timer-display.is-low { color: var(--danger); }
 
 .promo-item.is-live .slide-thumb { outline: 3px solid var(--success); }
+
+/* Two columns: preview + question controls on the left, timer / results / slides on the right */
+.op-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: var(--pad);
+  align-items: start;
+}
+.op-col { display: flex; flex-direction: column; gap: var(--pad); min-width: 0; }
+.op-col .timer-display { font-size: 48px; min-width: 0; flex: 1 1 140px; }
+@media (max-width: 960px) {
+  .op-columns { grid-template-columns: 1fr; }
+}

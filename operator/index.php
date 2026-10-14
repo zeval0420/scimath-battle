@@ -39,7 +39,7 @@ function card_close() { ?>
   <link rel="stylesheet" href="../src/universal/HeadFoot.css">
   <link rel="stylesheet" href="operator.css">
 </head>
-<body class="app-body" data-event="<?= $eventId ?>">
+<body class="app-body wide" data-event="<?= $eventId ?>">
 <?php
 $base = '../';
 $header_nav = [
@@ -63,6 +63,9 @@ include __DIR__ . '/../src/universal/header.php';
       <a class="btn" href="../display/index.php?event=<?= $eventId ?>" target="_blank" rel="noopener">Open display</a>
     </div>
   </div>
+
+  <div class="op-columns">
+  <div class="op-col">
 
   <?php card_open('preview', 'Screen preview'); ?>
       <div class="screen-frame" id="screen-frame">
@@ -105,13 +108,8 @@ include __DIR__ . '/../src/universal/header.php';
       </div>
   <?php card_close(); ?>
 
-  <?php card_open('slides', 'Additional slides'); ?>
-      <div class="row">
-        <button class="btn" type="button" id="clear-overlay">Back to question / answer</button>
-        <span class="hint" id="overlay-info"></span>
-      </div>
-      <div class="grid" id="promo-grid"></div>
-  <?php card_close(); ?>
+  </div>
+  <div class="op-col">
 
   <?php card_open('timer', 'Timer'); ?>
       <div class="row" style="justify-content:center">
@@ -143,6 +141,17 @@ include __DIR__ . '/../src/universal/header.php';
         <span class="hint">You can also scroll the list in the preview above.</span>
       </div>
   <?php card_close(); ?>
+
+  <?php card_open('slides', 'Additional slides'); ?>
+      <div class="row">
+        <button class="btn" type="button" id="clear-overlay">Back to question / answer</button>
+        <span class="hint" id="overlay-info"></span>
+      </div>
+      <div class="grid" id="promo-grid"></div>
+  <?php card_close(); ?>
+
+  </div>
+  </div>
 
 </main>
 <?php include __DIR__ . '/../src/universal/footer.php'; ?>
