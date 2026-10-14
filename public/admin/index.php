@@ -109,7 +109,7 @@ require __DIR__ . '/includes/header.php';
                 </div>
 
                 <!-- Preview grid (populated after staging upload) -->
-                <div id="slide-preview-grid" class="slide-preview-grid" style="display:none;margin-top:16px;"></div>
+                <div id="slide-preview-grid" class="slide-grid" style="display:none;margin-top:16px;"></div>
 
                 <!-- Classification Panel (shown after upload) -->
                 <div id="slide-classify-panel" style="display:none;margin-top:20px;">

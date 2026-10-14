@@ -670,6 +670,10 @@ require __DIR__ . '/includes/header.php';
         <h2>Batch Slide Upload</h2>
         <p class="hint">Upload a ZIP file or multiple images at once. Classify each slide below, then save all at once. Answer slides are paired to question slides in order. For question slides, you can also set the difficulty (Easy, Medium, Hard, or Clincher).</p>
 
+        <form id="event-slides-form" method="post" enctype="multipart/form-data">
+        <?= Csrf::field() ?>
+        <input type="hidden" name="event_id" value="<?= $eventId ?>">
+
         <div id="slide-upload-area" class="slide-drop-zone">
             <p style="margin:0;font-size:1rem;">Drag &amp; drop a ZIP or images here</p>
             <p style="margin:8px 0 0;font-size:0.85rem;color:var(--text-secondary);">or use one of these buttons:</p>
@@ -706,7 +710,7 @@ require __DIR__ . '/includes/header.php';
             <p id="slide-upload-error" class="alert alert-error" style="display:none;margin-top:10px;text-align:left;"></p>
         </div>
 
-        <div id="slide-preview-grid" class="slide-grid" style="display:none;"></div>
+        <div id="slide-preview-grid" class="slide-grid" style="display:none;margin-top:16px;"></div>
 
         <div id="slide-existing-summary" style="margin-top:20px;">
             <h3>Uploaded Slides</h3>
@@ -753,16 +757,21 @@ require __DIR__ . '/includes/header.php';
             <?php endif; ?>
         </div>
 
-        <div id="slide-classify-panel" style="display:none;margin-top:20px;">
-            <h3>Classify each slide</h3>
-            <p class="hint">When you select "Question Slide", a difficulty dropdown will appear. Answer slides auto-pair to question slides in order.</p>
-            <div id="slide-classify-list"></div>
-            <div class="btn-row" style="margin-top:20px;">
-                <button id="slide-save-all" class="btn btn-primary">Save All Slides</button>
-                <button id="slide-clear-all" class="btn">Clear</button>
+            <div id="slide-classify-panel" style="display:none;margin-top:20px;">
+                <h3>Classify each slide</h3>
+                <p class="hint">When you select "Question Slide", a difficulty dropdown will appear. Answer slides auto-pair to question slides in order.</p>
+                <div id="slide-classify-list"></div>
+                <div class="btn-row" style="margin-top:20px;">
+                    <button type="submit" id="slide-save-all" class="btn btn-primary">Save All Slides</button>
+                    <button type="button" id="slide-clear-all" class="btn">Clear</button>
+                </div>
+                <div id="slide-save-status" class="hint" style="margin-top:8px;"></div>
             </div>
-            <div id="slide-save-status" class="hint" style="margin-top:8px;"></div>
-        </div>
+
+            <input type="hidden" name="slides" id="slides-classification-final" value="[]">
+            <input type="hidden" name="save_banner" id="save-banner-final" value="0">
+            <input type="hidden" name="session_id" id="slide-session-id" value="">
+        </form>
     </div>
 </div>
 

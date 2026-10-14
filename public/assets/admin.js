@@ -455,10 +455,13 @@
             });
         }
 
-        // Only wire the batch_save handler on the management page (event_id known).
-        // On the creation page, index.js collects classifications and submits the form instead.
-        if (saveBtn && eventId) {
-            saveBtn.addEventListener('click', function() {
+        // On the management page (event_id known) the batch uploader lives inside
+        // #event-slides-form; submitting it saves the classified slides via
+        // batch_save.php. On the creation page index.js handles the form instead.
+        var slidesForm = document.getElementById('event-slides-form');
+        if (slidesForm && eventId) {
+            slidesForm.addEventListener('submit', function(e) {
+                e.preventDefault();
                 if (!classifyList) return;
                 var typeSelects = classifyList.querySelectorAll('.slide-type-select');
                 var diffSelects = classifyList.querySelectorAll('.slide-difficulty-select');
@@ -484,6 +487,11 @@
                     log('Answer slides require at least one question slide to pair with.');
                     return;
                 }
+                // Mirror the create page: sync the hidden fields too.
+                var slidesField = document.getElementById('slides-classification-final');
+                if (slidesField) slidesField.value = JSON.stringify(classified);
+                var bannerField = document.getElementById('save-banner-final');
+                if (bannerField) bannerField.value = hasBanner ? '1' : '0';
                 log('Saving...');
                 var form = new FormData();
                 form.append('event_id', eventId);
