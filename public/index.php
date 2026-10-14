@@ -24,8 +24,8 @@ $events = Event::allOrderedByDate();
             </div>
         </div>
         <span class="hero-eyebrow">Competition Management</span>
-        <h1>SciMath Competition System</h1>
-        <p>Configure competitions, run the live control panel, and broadcast results to the venue screen — all from one place.</p>
+        <h1>IRC QUEST</h1>
+        <p>PSHS-IRC Quiz Utility for Events, Scoring, and Tournaments</p>
     </div>
 </header>
 
