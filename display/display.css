@@ -1,0 +1,66 @@
+/* display.css - display-only additions (builds on components.css) */
+
+.text-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: #0a1018;
+  color: #fff;
+  font-size: clamp(48px, 9vw, 160px);
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.1;
+}
+.text-screen[hidden] { display: none; }
+
+.timer-badge {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  min-width: 150px;
+  padding: 8px 22px;
+  border-radius: var(--radius-lg);
+  background: rgba(10, 16, 24, 0.85);
+  color: #fff;
+  font-size: 56px;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.timer-badge[hidden] { display: none; }
+.timer-badge.is-low { color: #ff6b5e; }
+
+.start-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+}
+.start-gate[hidden] { display: none; }
+
+/* Scrolling lists */
+.overlay { overflow: hidden; }
+.score-list { scroll-behavior: smooth; scrollbar-width: thin; }
+
+.score-card-name { flex: 1; font-size: 22px; color: var(--ink-soft); }
+.score-card-status { min-width: 160px; font-size: 28px; font-weight: 700; text-align: center; }
+
+.score-card.is-correct { background: #2f9e55; color: #fff; }
+.score-card.is-wrong { background: #c0392b; color: #fff; }
+.score-card.is-unscored { background: #dfe3e8; }
+.score-card.is-correct .score-card-name,
+.score-card.is-wrong .score-card-name { color: rgba(255, 255, 255, 0.85); }
+
+.score-card-rank { min-width: 48px; font-size: 28px; font-weight: 700; color: var(--ink-soft); text-align: center; }
+.score-card-breakdown.is-wrap { flex-wrap: wrap; justify-content: flex-start; }
+.score-card-part.part-q { background: var(--surface-2); min-width: 64px; padding: 4px 8px; }
+.score-card-part.part-q.is-correct { background: #cfeedb; }
+.score-card-part.part-q.is-wrong { background: #f6d2cd; }
+.score-card-part.part-q .score-card-part-value { font-size: 20px; }
+.score-card-part.part-start { background: var(--surface-2); }

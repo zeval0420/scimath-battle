@@ -1,0 +1,192 @@
+// display/display.js - polls operator/api.php and renders whatever the operator has put on screen.
+(function () {
+  var EVENT = Number(document.body.dataset.event);
+  var PREVIEW = document.body.dataset.preview === '1';
+  var API = '../operator/api.php';
+  var ME = 'display-' + Math.random().toString(36).slice(2, 8) + (PREVIEW ? '-preview' : '');
+  var ROUND_CLASS = { easy: 'easy', medium: 'average', hard: 'difficult', clincher: 'clincher' };
+  var ROUND_LABEL = { easy: 'Easy', medium: 'Average', hard: 'Difficult', clincher: 'Clincher' };
+
+  var slide = document.getElementById('reusable-slide');
+  var textScreen = document.getElementById('text-screen');
+  var badge = document.getElementById('timer-badge');
+  var overlay = document.getElementById('overlay');
+  var list = document.getElementById('score-list');
+  var snap = null, recvAt = 0, lastScreenKey = '', lastScroll = null, programmaticUntil = 0;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function url(path) { return '../' + encodeURI(path); }
+
+  // ---------- rendering ----------
+  function statusCard(r) {
+    var cls = 'is-unscored', label = 'Not scored';
+    if (r.result === 'correct') { cls = 'is-correct'; label = 'Correct'; }
+    else if (r.result === 'incorrect') { cls = 'is-wrong'; label = 'Wrong'; }
+    else if (r.result === 'no_answer') { cls = 'is-wrong'; label = 'No answer'; }
+    else if (r.result === 'adjustment') { label = 'Adjustment'; }
+    if (r.points != null && r.result !== 'unscored') label += ' (' + (r.points > 0 ? '+' : '') + r.points + ')';
+    return '<div class="score-card ' + cls + '"><span class="score-card-school">' + esc(r.label) + '</span>' +
+      '<span class="score-card-name">' + esc(r.name) + '</span>' +
+      '<span class="score-card-status">' + esc(label) + '</span></div>';
+  }
+
+  function roundCard(r, i) {
+    return '<div class="score-card"><span class="score-card-rank">' + (i + 1) + '</span>' +
+      '<span class="score-card-school">' + esc(r.label) + '</span>' +
+      '<div class="score-card-breakdown is-wrap">' + r.cells.map(function (c) {
+        var cls = c.result === 'correct' ? ' is-correct' : (c.result === 'incorrect' || c.result === 'no_answer' ? ' is-wrong' : '');
+        return '<div class="score-card-part part-q' + cls + '"><span class="score-card-part-label">Q' + c.n + '</span>' +
+          '<span class="score-card-part-value">' + (c.points == null ? '-' : c.points) + '</span></div>';
+      }).join('') + '</div>' +
+      '<span class="score-card-final">' + r.total + '</span></div>';
+  }
+
+  function finalCard(r, i) {
+    var parts = Object.keys(ROUND_LABEL).map(function (k) {
+      return '<div class="score-card-part part-' + ROUND_CLASS[k] + '"><span class="score-card-part-label">' + ROUND_LABEL[k] +
+        '</span><span class="score-card-part-value">' + r.parts[k] + '</span></div>';
+    }).join('');
+    if (r.start) parts = '<div class="score-card-part part-start"><span class="score-card-part-label">Start</span><span class="score-card-part-value">' + r.start + '</span></div>' + parts;
+    return '<div class="score-card"><span class="score-card-rank">' + (i + 1) + '</span>' +
+      '<span class="score-card-school">' + esc(r.label) + '</span>' +
+      '<div class="score-card-breakdown">' + parts + '</div>' +
+      '<span class="score-card-final">' + r.total + '</span></div>';
+  }
+
+  function renderScreen(sc) {
+    var key = JSON.stringify(sc);
+    if (key === lastScreenKey) return;
+    var prevScroll = list.scrollTop;
+    var wasResults = !overlay.hidden;
+    lastScreenKey = key;
+
+    slide.style.backgroundImage = 'none';
+    textScreen.hidden = true;
+    overlay.hidden = true;
+
+    if (sc.kind === 'cover') {
+      if (sc.src) slide.style.backgroundImage = "url('" + url(sc.src) + "')";
+      else { textScreen.textContent = sc.text || ''; textScreen.hidden = false; }
+    } else if (sc.kind === 'image') {
+      slide.style.backgroundImage = "url('" + url(sc.src) + "')";
+    } else if (sc.kind === 'text') {
+      textScreen.textContent = sc.text || '';
+      textScreen.hidden = false;
+    } else if (sc.kind === 'results') {
+      document.getElementById('overlay-title').textContent = sc.title;
+      var logo = document.getElementById('overlay-logo');
+      if (snap.event.logo_path) { logo.src = url(snap.event.logo_path); logo.hidden = false; } else { logo.hidden = true; }
+      var render = rowRenderer();
+      var html = sc.rows.map(render).join('');
+      list.innerHTML = html || '<div class="score-card"><span class="score-card-name">No contestants yet.</span></div>';
+      overlay.hidden = false;
+      list.scrollTop = wasResults ? prevScroll : 0;
+    }
+  }
+
+  // sc.kind is 'results' for the screen; the results type is carried in snap.state.overlay.kind
+  function rowRenderer() {
+    var k = snap.state.overlay && snap.state.overlay.kind;
+    return k === 'round' ? roundCard : (k === 'final' ? finalCard : statusCard);
+  }
+
+  function renderTimer() {
+    var t = snap && snap.timer;
+    if (!t || !t.visible) { badge.hidden = true; return; }
+    var ms = t.running ? t.remaining_ms - (performance.now() - recvAt) : t.remaining_ms;
+    var s = Math.max(0, Math.ceil(ms / 1000));
+    badge.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    badge.classList.toggle('is-low', s <= 5);
+    badge.hidden = false;
+  }
+
+  // ---------- audio (live display only) ----------
+  var audioReady = false, timerRun = null;
+  var aBanner = document.getElementById('audio-banner');
+  var aGame = document.getElementById('audio-game');
+  var aTimer = document.getElementById('audio-timer');
+
+  function setSrc(a, path) {
+    var want = path ? url(path) : '';
+    if (a.dataset.path !== want) { a.dataset.path = want; if (want) a.src = want; else a.removeAttribute('src'); }
+  }
+  function play(a, on) {
+    if (!a.getAttribute('src')) return;
+    if (on && a.paused) a.play().catch(function () {});
+    if (!on && !a.paused) a.pause();
+  }
+  function syncAudio() {
+    if (PREVIEW || !audioReady || !snap) return;
+    var au = snap.audio, onCover = snap.state.hidden;
+    setSrc(aBanner, au.banner); setSrc(aGame, au.game); setSrc(aTimer, au.timer);
+    aBanner.volume = au.banner_volume / 100; aGame.volume = au.game_volume / 100;
+    play(aBanner, onCover);
+    play(aGame, !onCover);
+    if (snap.timer.run_id !== timerRun) { timerRun = snap.timer.run_id; aTimer.currentTime = 0; }
+    play(aTimer, snap.timer.running);
+  }
+
+  // ---------- scroll sync ----------
+  function maxScroll() { return Math.max(0, list.scrollHeight - list.clientHeight); }
+
+  function applyScroll() {
+    if (overlay.hidden || snap.state.scroll_by === ME) return;
+    var target = snap.state.scroll * maxScroll();
+    var key = snap.state.scroll_by + ':' + snap.state.scroll;
+    if (key === lastScroll) return; // already applied this update
+    lastScroll = key;
+    programmaticUntil = Date.now() + 700;
+    list.scrollTop = target;
+  }
+
+  var sendTimer = null;
+  list.addEventListener('scroll', function () {
+    if (Date.now() < programmaticUntil || sendTimer) return;
+    sendTimer = setTimeout(function () {
+      sendTimer = null;
+      var m = maxScroll();
+      var ratio = m ? list.scrollTop / m : 0;
+      lastScroll = ME + ':' + ratio;
+      post('set_scroll', { ratio: ratio, by: ME });
+    }, 200);
+  });
+
+  // ---------- network ----------
+  async function post(action, payload) {
+    var fd = new FormData();
+    fd.append('action', action); fd.append('event', EVENT); fd.append('payload', JSON.stringify(payload || {}));
+    var res = await fetch(API, { method: 'POST', body: fd });
+    var json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json.snapshot;
+  }
+
+  async function poll() {
+    try {
+      snap = await post('state');
+      recvAt = performance.now();
+      renderScreen(snap.screen);
+      applyScroll();
+      syncAudio();
+    } catch (e) { /* keep showing the last screen */ }
+    setTimeout(poll, 1000);
+  }
+
+  // Tapping a result row's area never needs to do anything; the gate is the only click target.
+  var gate = document.getElementById('start-gate');
+  if (gate) {
+    gate.addEventListener('click', function () {
+      audioReady = true;
+      gate.hidden = true;
+      if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+      syncAudio();
+    });
+  }
+
+  setInterval(renderTimer, 200);
+  poll();
+})();
