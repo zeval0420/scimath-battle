@@ -458,26 +458,49 @@
     function renderSlidePreview(state) {
 
         var current = state.current_question;
+        var isShowingAnswer = state.display_state === 'answer';
 
-        setSlideThumb(
-
-            'op-current-thumb', 'op-current-thumb-empty', 'op-current-thumb-caption',
-
-            current, current ? questionCaption(current) : 'No question'
-
-        );
-
-
-
-        var nextQ = findNextQuestion(state);
-
-        setSlideThumb(
-
-            'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
-
-            nextQ, nextQ ? questionCaption(nextQ) : 'No next question'
-
-        );
+        if (isShowingAnswer && current) {
+            // Current thumb: show the answer slide image
+            var currentAnswer = findAnswerSlideByQuestionId(current.id);
+            setAnswerThumb(
+                'op-current-thumb', 'op-current-thumb-empty', 'op-current-thumb-caption',
+                currentAnswer, 'Q' + current.question_number + ' — Answer'
+            );
+            // Next thumb: show the next question
+            var nextQ = findNextQuestion(state);
+            setSlideThumb(
+                'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
+                nextQ, nextQ ? questionCaption(nextQ) : 'No next question'
+            );
+        } else {
+            // Current thumb: show the current question
+            setSlideThumb(
+                'op-current-thumb', 'op-current-thumb-empty', 'op-current-thumb-caption',
+                current, current ? questionCaption(current) : 'No question'
+            );
+            // Next thumb: if altQaEnabled and there's an answer slide, preview it; otherwise next question
+            var nextQ = findNextQuestion(state);
+            if (altQaEnabled && current) {
+                var answer = findAnswerSlideByQuestionId(current.id);
+                if (answer) {
+                    setAnswerThumb(
+                        'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
+                        answer, 'Q' + current.question_number + ' — Answer'
+                    );
+                } else {
+                    setSlideThumb(
+                        'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
+                        nextQ, nextQ ? questionCaption(nextQ) : 'No next question'
+                    );
+                }
+            } else {
+                setSlideThumb(
+                    'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
+                    nextQ, nextQ ? questionCaption(nextQ) : 'No next question'
+                );
+            }
+        }
 
     }
 
@@ -572,6 +595,11 @@
 
         }
 
+    }
+
+    // Same as setSlideThumb but accepts an answer slide object (also has image_path).
+    function setAnswerThumb(imgId, emptyId, captionId, slide, captionText) {
+        setSlideThumb(imgId, emptyId, captionId, slide, captionText);
     }
 
 
