@@ -168,7 +168,7 @@
 
         var stagedImages = [];
         var sessionId = null;
-        var eventId = null; // Set above from constructor param or URL
+         // Set above from constructor param or URL
 
         // Show selected file names
         multiInput.addEventListener('change', function() {

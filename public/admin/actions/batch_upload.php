@@ -37,7 +37,11 @@ if (!isset($_FILES['upload']) && !isset($_FILES['files'])) {
  * Validate an image file at $path and return ['mime'=>..., 'size'=>...] or
  * throw RuntimeException on failure.
  */
-function validateImageFile(string $path): array
+function validateImageFile(
+    string $path,
+    int $uploadMaxBytes,
+    array $allowedMimes
+): array
 {
     if (!is_file($path) || !is_readable($path)) {
         throw new RuntimeException('Cannot read file.');
@@ -129,7 +133,11 @@ if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
         error_log('batch_upload: Extracted to: ' . $tmpName . ', size: ' . filesize($tmpName));
 
         try {
-            $meta = validateImageFile($tmpName);
+            $meta = validateImageFile(
+    $tmpName,
+    $uploadMaxBytes,
+    $allowedMimes
+);
             error_log('batch_upload: Valid image: ' . $name . ', mime: ' . $meta['mime']);
             $staged[] = [
                 'index'  => count($staged),
@@ -167,7 +175,11 @@ if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
         }
 
         try {
-            $meta = validateImageFile($tmpName);
+            $meta = validateImageFile(
+    $tmpName,
+    $uploadMaxBytes,
+    $allowedMimes
+);
             $staged[] = [
                 'index'    => count($staged),
                 'filename' => $originalName,
