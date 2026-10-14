@@ -51,7 +51,7 @@ try {
         'event_id'   => $eventId,
         'event_name' => $name,
         'slides'     => $slidesResult,
-        'redirect_to' => relative_url('/admin/event.php?id=' . $eventId),
+        'redirect_to' => relative_url('/public/admin/event.php?id=' . $eventId),
     ]);
 } catch (PDOException $e) {
     echo json_encode(['error' => 'Failed to create event: ' . $e->getMessage()]);
