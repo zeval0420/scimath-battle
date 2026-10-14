@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../../src/bootstrap.php';
 Auth::requireAdmin();
 
 header('Content-Type: application/json');
-error_log('batch_upload: Request received. Method: ' . $_SERVER['REQUEST_METHOD']);
+error_log('batch_upload: Request received. Method: ' . $_SERVER['REQUEST_METHOD'] . ', FILES: ' . print_r(array_keys($_FILES), true));
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -25,6 +25,13 @@ require_once __DIR__ . '/../../../src/Support/Uploader.php';
 $config = require __DIR__ . '/../../../config/app.php';
 $uploadMaxBytes = $config['uploads']['max_bytes'];
 $allowedMimes = $config['uploads']['allowed_mime_types'];
+
+// Quick test - if no files at all, return debug info
+if (!isset($_FILES['upload']) && !isset($_FILES['files'])) {
+    error_log('batch_upload: NO FILES in request. POST keys: ' . print_r(array_keys($_POST), true));
+    echo json_encode(['error' => 'No files provided. Drag and drop files or click to browse.', 'debug' => ['FILES_keys' => array_keys($_FILES), 'POST_keys' => array_keys($_POST)]]);
+    exit;
+}
 
 /**
  * Validate an image file at $path and return ['mime'=>..., 'size'=>...] or
@@ -144,8 +151,11 @@ if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
 // ---- Multi-file upload -----------------------------------------------
 } elseif (isset($_FILES['files']) && is_array($_FILES['files']['name'])) {
     $count = count($_FILES['files']['name']);
+    error_log('batch_upload: Multi-file upload received. Count: ' . $count);
     for ($i = 0; $i < $count; $i++) {
+        error_log('batch_upload: File ' . $i . ' - name: ' . $_FILES['files']['name'][$i] . ', error: ' . $_FILES['files']['error'][$i] . ', tmp_name: ' . $_FILES['files']['tmp_name'][$i] . ', size: ' . $_FILES['files']['size'][$i]);
         if ($_FILES['files']['error'][$i] !== UPLOAD_ERR_OK) {
+            error_log('batch_upload: File ' . $i . ' skipped due to error: ' . $_FILES['files']['error'][$i]);
             continue;
         }
         $tmpName = $_FILES['files']['tmp_name'][$i];
