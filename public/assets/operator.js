@@ -21,6 +21,14 @@
 
     var lastScoredQuestionId = parseInt(root.getAttribute('data-last-scored-question-id'), 10) || null;
 
+    // Alternating Q→A toggle: persisted per event in localStorage
+    var ALT_QA_STORAGE_KEY = 'op-alt-qa:' + eventId;
+    var altQaEnabled = true;
+    try {
+        var _altRaw = window.localStorage.getItem(ALT_QA_STORAGE_KEY);
+        if (_altRaw !== null) altQaEnabled = JSON.parse(_altRaw);
+    } catch (e) { /* ignore */ }
+
 
 
     var POLL_MS = 1000;
@@ -316,8 +324,8 @@
         var isShowingAnswer = state.display_state === 'answer';
         var currentAnswer = q ? findAnswerSlideByQuestionId(q.id) : null;
         document.getElementById('op-btn-start-first').disabled = !state.is_active || q !== null;
-        document.getElementById('op-btn-prev').disabled = !state.is_active || q === null || (progress.is_first && !isShowingAnswer);
-        document.getElementById('op-btn-next').disabled = !state.is_active || q === null || (progress.is_last && !currentAnswer && !isShowingAnswer);
+        document.getElementById('op-btn-prev').disabled = !state.is_active || q === null || (progress.is_first && !(altQaEnabled && isShowingAnswer));
+        document.getElementById('op-btn-next').disabled = !state.is_active || q === null || (progress.is_last && !(altQaEnabled && currentAnswer) && !isShowingAnswer);
         document.getElementById('op-goto-select').disabled = !state.is_active;
 
 
@@ -396,6 +404,7 @@
 
         renderQuestionToggle(state, q);
 
+        renderAltQaToggle();
 
 
         // Update results panel last-scored display
@@ -591,6 +600,15 @@
 
 
 
+    function renderAltQaToggle() {
+        var toggle = document.getElementById('op-toggle-alt-qa');
+        var stateEl = document.getElementById('op-toggle-alt-qa-state');
+        if (toggle) toggle.checked = altQaEnabled;
+        if (stateEl) stateEl.textContent = altQaEnabled ? 'On' : 'Off';
+    }
+
+
+
     var ROUND_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard', clincher: 'Clincher' };
 
     function roundLabel(r) {
@@ -631,7 +649,7 @@
 
     document.getElementById('op-btn-prev').addEventListener('click', function (e) {
         var state = dashboard.state;
-        if (state.display_state === 'answer') {
+        if (altQaEnabled && state.display_state === 'answer') {
             doAction('show_question', {}, e.currentTarget);
             return;
         }
@@ -643,12 +661,12 @@
         var q = state.current_question;
         if (!q) return;
 
-        if (state.display_state === 'answer') {
+        if (altQaEnabled && state.display_state === 'answer') {
             doAction('next_question', {}, e.currentTarget);
             return;
         }
 
-        var answer = findAnswerSlideByQuestionId(q.id);
+        var answer = altQaEnabled ? findAnswerSlideByQuestionId(q.id) : null;
         if (answer) {
             doAction('show_answer', { slide_id: answer.id }, e.currentTarget);
         } else {
@@ -730,6 +748,15 @@
 
         doAction(show ? 'show_question' : 'hide_question', {}, e.currentTarget);
 
+    });
+
+
+
+    // Auto-show answer on Next → toggle
+    document.getElementById('op-toggle-alt-qa').addEventListener('change', function (e) {
+        altQaEnabled = e.currentTarget.checked;
+        try { window.localStorage.setItem(ALT_QA_STORAGE_KEY, JSON.stringify(altQaEnabled)); } catch (_) {}
+        renderAltQaToggle();
     });
 
 

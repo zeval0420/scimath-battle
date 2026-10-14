@@ -59,6 +59,7 @@ require __DIR__ . '/../admin/includes/header.php';
      data-csrf="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES) ?>"
      data-initial='<?= htmlspecialchars(json_encode($dashboard), ENT_QUOTES) ?>'
      data-questions='<?= htmlspecialchars(json_encode($questionListPayload), ENT_QUOTES) ?>'
+     data-answer-slides='<?= htmlspecialchars(json_encode($questionAnswerSlides), ENT_QUOTES) ?>'
      data-last-scored-question-id='<?= $dashboard["last_scored_question_id"] ?? "null" ?>'>
 
     <div class="op-topbar">
@@ -159,6 +160,16 @@ require __DIR__ . '/../admin/includes/header.php';
                     <span class="op-toggle-state" id="op-toggle-question-state">Hidden</span>
                 </div>
                 <p class="hint" style="margin-top:10px;">Override: force the current question to show or hide on the public display.</p>
+
+                <div class="op-toggle-row" style="margin-top:14px;">
+                    <span class="op-toggle-title">Auto-show answer on Next →</span>
+                    <label class="op-switch">
+                        <input type="checkbox" id="op-toggle-alt-qa" checked>
+                        <span class="op-switch-track"><span class="op-switch-thumb"></span></span>
+                    </label>
+                    <span class="op-toggle-state" id="op-toggle-alt-qa-state">On</span>
+                </div>
+                <p class="hint" style="margin-top:6px;">When on, Next → goes Question → Answer → Next Question. When off, Next → skips the answer slide.</p>
 
                 <div class="op-answer-control">
                     <label for="op-answer-select" class="op-answer-label">Show answer slide (questions only)</label>
