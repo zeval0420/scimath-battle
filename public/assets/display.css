@@ -39,10 +39,8 @@ html, body {
 .disp-state.is-active { opacity: 1; visibility: visible; }
 
 /* ============== COVER ============== */
-/* The cover is just the banner image, full-screen: no logo, text or overlay. */
-.disp-cover {
-    background: #000;
-}
+/* The cover is just the banner image, full-screen: no logo, text, background
+   or overlay of any kind. */
 .disp-cover-bg {
     position: absolute; inset: 0;
     background-size: cover;
