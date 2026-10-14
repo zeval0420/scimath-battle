@@ -35,10 +35,11 @@ $questionListPayload = [];
 foreach ($allQuestions as $q) {
     $questionNumberById[(int) $q['id']] = (int) $q['question_number'];
     $questionListPayload[] = [
-        'id'              => (int) $q['id'],
-        'question_number' => (int) $q['question_number'],
-        'round'           => $q['round'] ?? null,
-        'image_path'      => $q['image_path'],
+        'id'                => (int) $q['id'],
+        'question_number'   => (int) $q['question_number'],
+        'round'             => $q['round'] ?? null,
+        'image_path'        => $q['image_path'],
+        'answer_image_path' => $q['answer_image_path'] ?? null,
     ];
 }
 

@@ -167,8 +167,7 @@ try {
 
         case 'show_answer':
             require_write();
-            $slideId = (int) ($input['slide_id'] ?? 0);
-            api_ok(['state' => CompetitionRuntime::showAnswerSlide($eventId, $slideId)]);
+            api_ok(['state' => CompetitionRuntime::showAnswerSlide($eventId)]);
             break;
 
         case 'hide_question':

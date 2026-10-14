@@ -61,7 +61,7 @@
         }
     }
 
-    function renderQuestion(q, presentation) {
+    function renderQuestion(q, presentation, isAnswer) {
         if (!q) return;
 
         var catEl = document.getElementById('disp-q-category');
@@ -83,7 +83,8 @@
         document.getElementById('disp-timer').parentElement.style.visibility = presentation.show_timer ? 'visible' : 'hidden';
 
         var img = document.getElementById('disp-q-image');
-        var newSrc = '../' + q.image_path;
+        var imagePath = (isAnswer && q.answer_image_path) ? q.answer_image_path : q.image_path;
+        var newSrc = '../' + imagePath;
         if (!img.src.endsWith(newSrc)) img.src = newSrc;
     }
 
@@ -218,8 +219,8 @@ logo.src = '../' + eventInfo.logo_path;
         current = data;
         setTimerAnchor(data.timer);
 
-        // 'answer' reuses the question section — just one image whose src swaps.
-        var sectionName = data.display_state === 'answer' ? 'question' : data.display_state;
+        var isQuestionView = (data.display_state === 'question' || data.display_state === 'time_up' || data.display_state === 'answer');
+        var sectionName = isQuestionView ? 'question' : data.display_state;
         setActiveSection(sectionName);
 
         // Handle audio config changes
@@ -229,10 +230,8 @@ logo.src = '../' + eventInfo.logo_path;
 
         if (data.display_state === 'cover') {
             renderCover(data.event);
-        } else if (data.display_state === 'question' || data.display_state === 'time_up') {
-            renderQuestion(data.current_question, data.presentation);
-        } else if (data.display_state === 'answer') {
-            renderAnswer(data.answer_slide);
+        } else if (isQuestionView) {
+            renderQuestion(data.current_question, data.presentation, data.display_state === 'answer');
         } else if (data.display_state === 'ranking') {
             renderBreakdown(
                 document.getElementById('disp-ranking-breakdown'),
@@ -303,7 +302,7 @@ logo.src = '../' + eventInfo.logo_path;
         if (state === 'cover' && bannerAudio) {
             gameAudio && gameAudio.pause();
             bannerAudio.play().catch(function() {});
-        } else if ((state === 'question' || state === 'ranking' || state === 'round_ranking' || state === 'final_results') && gameAudio) {
+        } else if ((state === 'question' || state === 'answer' || state === 'ranking' || state === 'round_ranking' || state === 'final_results') && gameAudio) {
             bannerAudio && bannerAudio.pause();
             gameAudio.play().catch(function() {});
         } else {
@@ -330,12 +329,6 @@ logo.src = '../' + eventInfo.logo_path;
         } else {
             desc.style.display = 'none';
         }
-    }
-
-    function renderAnswer(slide) {
-        if (!slide || !slide.image_path) return;
-        var img = document.getElementById('disp-q-image');
-        img.src = '../' + slide.image_path;
     }
 
     function renderHiddenOverlay() {

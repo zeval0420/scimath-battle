@@ -505,23 +505,13 @@ class CompetitionRuntime
         });
     }
 
-    public static function showAnswerSlide(int $eventId, int $slideId): array
+    public static function showAnswerSlide(int $eventId): array
     {
-        return self::mutate($eventId, function (array $session) use ($slideId) {
+        return self::mutate($eventId, function (array $session) {
             self::requireActive($session);
+            self::requireCurrentQuestion($session);
 
-            $slide = AnswerSlide::find($slideId);
-            if ($slide === null) {
-                throw new CompetitionRuntimeException('That answer slide does not exist.');
-            }
-            //if ((int) $slide['event_id'] !== $eventId) {
-            //    throw new CompetitionRuntimeException('That answer slide does not belong to this event.');
-            //}
-            //if (!(bool) $slide['is_active']) {
-            //    throw new CompetitionRuntimeException('That answer slide is not active.');
-            //}
-
-            return ['display_state' => DisplayState::ANSWER, 'answer_slide' => $slide];
+            return ['display_state' => DisplayState::ANSWER];
         });
     }
 
@@ -692,7 +682,6 @@ class CompetitionRuntime
             'rankings'       => $needsRanking ? self::getRankings($eventId) : [],
             'breakdown'      => $breakdown,
             'promotional_slide' => $state['display_state'] === DisplayState::PROMOTIONAL ? ($state['promotional_slide'] ?? null) : null,
-            'answer_slide'   => $state['display_state'] === DisplayState::ANSWER ? ($state['answer_slide'] ?? null) : null,
         ];
     }
 
@@ -969,13 +958,14 @@ class CompetitionRuntime
         }
 
         return [
-            'id'              => (int) $question['id'],
-            'question_number' => (int) $question['question_number'],
-            'category'        => $category,
-            'round'           => $question['round'] ?? Round::EASY,
-            'image_path'      => $question['image_path'],
-            'points'          => $settings !== null ? Question::effectivePoints($question, $settings) : (int) $question['points'],
-            'time_seconds'    => $settings !== null ? Question::effectiveTimeSeconds($question, $settings) : (int) $question['time_seconds'],
+            'id'                => (int) $question['id'],
+            'question_number'   => (int) $question['question_number'],
+            'category'          => $category,
+            'round'             => $question['round'] ?? Round::EASY,
+            'image_path'        => $question['image_path'],
+            'answer_image_path' => $question['answer_image_path'] ?? null,
+            'points'            => $settings !== null ? Question::effectivePoints($question, $settings) : (int) $question['points'],
+            'time_seconds'      => $settings !== null ? Question::effectiveTimeSeconds($question, $settings) : (int) $question['time_seconds'],
         ];
     }
 

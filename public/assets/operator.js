@@ -17,7 +17,7 @@
     var dashboard = JSON.parse(root.getAttribute('data-initial'));
 
     var allQuestions = JSON.parse(root.getAttribute('data-questions') || '[]');
-    var answerSlides = JSON.parse(root.getAttribute('data-answer-slides') || '[]');
+
 
     var lastScoredQuestionId = parseInt(root.getAttribute('data-last-scored-question-id'), 10) || null;
 
@@ -292,11 +292,9 @@
             document.getElementById('op-q-time').textContent = q.time_seconds + 's';
 
             var img = document.getElementById('op-q-preview');
-
-            img.src = '../' + q.image_path;
-
+            var imagePath = (state.display_state === 'answer' && q.answer_image_path) ? q.answer_image_path : q.image_path;
+            img.src = '../' + imagePath;
             img.style.display = '';
-
             document.getElementById('op-q-none').style.display = 'none';
 
         } else {
@@ -322,10 +320,10 @@
         // the server even has to reject them.
 
         var isShowingAnswer = state.display_state === 'answer';
-        var currentAnswer = q ? findAnswerSlideByQuestionId(q.id) : null;
+        var hasAnswer = !!(q && q.answer_image_path);
         document.getElementById('op-btn-start-first').disabled = !state.is_active || q !== null;
         document.getElementById('op-btn-prev').disabled = !state.is_active || q === null || (progress.is_first && !(altQaEnabled && isShowingAnswer));
-        document.getElementById('op-btn-next').disabled = !state.is_active || q === null || (progress.is_last && !(altQaEnabled && currentAnswer) && !isShowingAnswer);
+        document.getElementById('op-btn-next').disabled = !state.is_active || q === null || (progress.is_last && !(altQaEnabled && hasAnswer) && !isShowingAnswer);
         document.getElementById('op-goto-select').disabled = !state.is_active;
 
 
@@ -461,11 +459,11 @@
         var isShowingAnswer = state.display_state === 'answer';
 
         if (isShowingAnswer && current) {
-            // Current thumb: show the answer slide image
-            var currentAnswer = findAnswerSlideByQuestionId(current.id);
-            setAnswerThumb(
+            // Current thumb: show the answer image
+            var answerObj = current.answer_image_path ? { image_path: current.answer_image_path } : null;
+            setSlideThumb(
                 'op-current-thumb', 'op-current-thumb-empty', 'op-current-thumb-caption',
-                currentAnswer, 'Q' + current.question_number + ' — Answer'
+                answerObj, 'Q' + current.question_number + ' — Answer'
             );
             // Next thumb: show the next question
             var nextQ = findNextQuestion(state);
@@ -479,21 +477,14 @@
                 'op-current-thumb', 'op-current-thumb-empty', 'op-current-thumb-caption',
                 current, current ? questionCaption(current) : 'No question'
             );
-            // Next thumb: if altQaEnabled and there's an answer slide, preview it; otherwise next question
+            // Next thumb: if altQaEnabled and there's an answer image, preview it; otherwise next question
             var nextQ = findNextQuestion(state);
-            if (altQaEnabled && current) {
-                var answer = findAnswerSlideByQuestionId(current.id);
-                if (answer) {
-                    setAnswerThumb(
-                        'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
-                        answer, 'Q' + current.question_number + ' — Answer'
-                    );
-                } else {
-                    setSlideThumb(
-                        'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
-                        nextQ, nextQ ? questionCaption(nextQ) : 'No next question'
-                    );
-                }
+            if (altQaEnabled && current && current.answer_image_path) {
+                var answerObj = { image_path: current.answer_image_path };
+                setSlideThumb(
+                    'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
+                    answerObj, 'Q' + current.question_number + ' — Answer'
+                );
             } else {
                 setSlideThumb(
                     'op-next-thumb', 'op-next-thumb-empty', 'op-next-thumb-caption',
@@ -539,15 +530,6 @@
     }
 
 
-
-    function findAnswerSlideByQuestionId(questionId) {
-        for (var i = 0; i < answerSlides.length; i++) {
-            if (String(answerSlides[i].question_id) === String(questionId)) {
-                return answerSlides[i];
-            }
-        }
-        return null;
-    }
 
     function findQuestionById(questions, id) {
 
@@ -597,11 +579,6 @@
 
     }
 
-    // Same as setSlideThumb but accepts an answer slide object (also has image_path).
-    function setAnswerThumb(imgId, emptyId, captionId, slide, captionText) {
-        setSlideThumb(imgId, emptyId, captionId, slide, captionText);
-    }
-
 
 
     function renderQuestionToggle(state, q) {
@@ -612,7 +589,7 @@
 
 
 
-        var shown = state.display_state === 'question' || state.display_state === 'time_up';
+        var shown = state.display_state === 'question' || state.display_state === 'time_up' || state.display_state === 'answer';
 
         toggle.checked = shown;
 
@@ -694,9 +671,9 @@
             return;
         }
 
-        var answer = altQaEnabled ? findAnswerSlideByQuestionId(q.id) : null;
-        if (answer) {
-            doAction('show_answer', { slide_id: answer.id }, e.currentTarget);
+        var hasAnswer = altQaEnabled && !!q.answer_image_path;
+        if (hasAnswer) {
+            doAction('show_answer', {}, e.currentTarget);
         } else {
             doAction('next_question', {}, e.currentTarget);
         }
@@ -866,24 +843,17 @@
 
 
     
-document.getElementById('op-btn-show-answer').addEventListener('click', function (e) {
-    var q = dashboard.state && dashboard.state.current_question;
-    if (!q) return;
+    document.getElementById('op-btn-show-answer').addEventListener('click', function (e) {
+        var q = dashboard.state && dashboard.state.current_question;
+        if (!q) return;
 
-    var answer = findAnswerSlideByQuestionId(q.id);
-    if (!answer) {
-        alert('No answer slide configured for this question.');
-        return;
-    }
-
-    doAction('show_answer', { slide_id: answer.id }, e.currentTarget).then(function () {
-        var panel = document.getElementById('op-results-panel');
-        if (panel) {
-            panel.style.display = '';
-            renderResultsPanel();
+        if (!q.answer_image_path) {
+            alert('No answer image configured for this question.');
+            return;
         }
+
+        doAction('show_answer', {}, e.currentTarget);
     });
-});
 
 
 
