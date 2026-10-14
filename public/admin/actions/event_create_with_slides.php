@@ -60,12 +60,39 @@ try {
 
 function processSlides(int $eventId): array
 {
-    error_log("processSlides: FILES keys: " . print_r(array_keys($_FILES), true));
     $createdQuestions = 0;
     $createdPromo = 0;
     $createdAnswers = 0;
     $bannerSaved = false;
     $errors = [];
+
+    // Preferred path: images were already staged to the session by
+    // actions/batch_upload.php while the event was being created. Reuse the
+    // exact same classification/save logic as batch_save.php.
+    $sessionId = trim((string) ($_POST['session_id'] ?? ''));
+    if ($sessionId !== '') {
+        $sessionKey = 'batch_upload_' . $sessionId;
+        $staged = $_SESSION[$sessionKey]['images'] ?? [];
+        if (is_array($staged) && $staged !== []) {
+            $slidesData = [];
+            foreach ($staged as $img) {
+                $slidesData[] = [
+                    'filename' => (string) ($img['filename'] ?? ''),
+                    'tempPath' => (string) ($img['tempPath'] ?? ''),
+                ];
+            }
+            $result = saveSlidesFromData($eventId, $slidesData);
+            unset($_SESSION[$sessionKey]);
+
+            return [
+                'questions' => $result['questions'],
+                'promo'     => $result['promo'],
+                'answers'   => $result['answers'],
+                'banner'    => $result['banner'],
+                'errors'    => $result['errors'] ?? [],
+            ];
+        }
+    }
 
     // Handle ZIP upload
     if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {

@@ -92,6 +92,7 @@
         var statusSizeEl = document.getElementById('slide-status-size');
         var statusBadgeEl = document.getElementById('slide-status-badge');
         var clearFileBtn = document.getElementById('slide-clear-file');
+        var sessionFieldEl = document.getElementById('slide-session-id');
 
         console.log('[slide-upload] DOM elements found:', {
             dropZone: !!dropZone,
@@ -315,6 +316,7 @@
                     if (data.error) { showError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
+                    if (sessionFieldEl) sessionFieldEl.value = sessionId || '';
                     hideProgress();
                     log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
@@ -384,6 +386,7 @@
                     if (data.error) { showError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
+                    if (sessionFieldEl) sessionFieldEl.value = sessionId || '';
                     hideProgress();
                     log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
@@ -452,7 +455,9 @@
             });
         }
 
-        if (saveBtn) {
+        // Only wire the batch_save handler on the management page (event_id known).
+        // On the creation page, index.js collects classifications and submits the form instead.
+        if (saveBtn && eventId) {
             saveBtn.addEventListener('click', function() {
                 if (!classifyList) return;
                 var typeSelects = classifyList.querySelectorAll('.slide-type-select');
@@ -525,6 +530,7 @@
             clearBtn.addEventListener('click', function() {
                 stagedImages = [];
                 sessionId = null;
+                if (sessionFieldEl) sessionFieldEl.value = '';
                 if (previewGrid) previewGrid.innerHTML = '';
                 if (classifyList) classifyList.innerHTML = '';
                 if (previewGrid) previewGrid.style.display = 'none';

@@ -108,13 +108,14 @@ require __DIR__ . '/includes/header.php';
                     <p id="slide-upload-error" class="alert alert-error" style="display:none;margin-top:10px;text-align:left;"></p>
                 </div>
 
+                <!-- Preview grid (populated after staging upload) -->
+                <div id="slide-preview-grid" class="slide-preview-grid" style="display:none;margin-top:16px;"></div>
+
                 <!-- Classification Panel (shown after upload) -->
                 <div id="slide-classify-panel" style="display:none;margin-top:20px;">
                     <h3>Classify each slide</h3>
                     <p class="hint">When you select "Question Slide", a difficulty dropdown will appear. Answer slides auto-pair to question slides in order.</p>
                     <div id="slide-classify-list"></div>
-                    <input type="hidden" name="slides" id="slides-classification" value="[]">
-                    <input type="hidden" name="save_banner" id="save-banner" value="0">
                     <div class="btn-row" style="margin-top:20px;">
                         <button type="button" id="slide-save-all" class="btn btn-primary">Save All Slides</button>
                         <button type="button" id="slide-clear-all" class="btn">Clear</button>
@@ -125,6 +126,7 @@ require __DIR__ . '/includes/header.php';
                 <!-- Hidden inputs for final submit -->
                 <input type="hidden" name="slides" id="slides-classification-final" value="[]">
                 <input type="hidden" name="save_banner" id="save-banner-final" value="0">
+                <input type="hidden" name="session_id" id="slide-session-id" value="">
 
                 <div class="btn-row" style="margin-top:20px;">
                     <button type="submit" class="btn btn-primary" id="btn-create-event">Create Event & Save Slides</button>
