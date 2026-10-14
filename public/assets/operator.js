@@ -856,6 +856,7 @@
     
     document.getElementById('op-btn-show-answer').addEventListener('click', function (e) {
         var q = dashboard.state && dashboard.state.current_question;
+        doAction('show_answer', {}, e.currentTarget);
         if (!q) return;
 
         if (!q.answer_image_path) {
