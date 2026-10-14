@@ -36,12 +36,6 @@ $audioConfig = EventSetting::audioConfig($settings ?? []);
     <!-- COVER -->
     <section class="disp-state disp-cover" data-state-section="cover">
         <div class="disp-cover-bg" id="disp-cover-bg"></div>
-        <div class="disp-cover-overlay"></div>
-        <div class="disp-cover-content">
-            <img id="disp-cover-logo" class="disp-cover-logo" style="display:none;" alt="">
-            <h1 id="disp-cover-name" class="disp-cover-name"></h1>
-            <p id="disp-cover-subtitle" class="disp-cover-subtitle"></p>
-        </div>
     </section>
 
     <!-- QUESTION -->

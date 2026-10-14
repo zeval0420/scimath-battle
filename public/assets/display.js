@@ -59,19 +59,6 @@
         } else {
             bg.style.display = 'none';
         }
-
-        var logo = document.getElementById('disp-cover-logo');
-        if (eventInfo.logo_path) {
-logo.src = '../' + eventInfo.logo_path;
-        logo.style.display = '';
-    } else {
-        logo.style.display = 'none';
-    }
-
-    document.getElementById('disp-cover-name').textContent = eventInfo.name;
-        var subtitleEl = document.getElementById('disp-cover-subtitle');
-        subtitleEl.textContent = eventInfo.subtitle || '';
-        subtitleEl.style.display = eventInfo.subtitle ? '' : 'none';
     }
 
     function renderQuestion(q, presentation) {

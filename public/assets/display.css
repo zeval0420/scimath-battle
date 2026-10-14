@@ -39,38 +39,15 @@ html, body {
 .disp-state.is-active { opacity: 1; visibility: visible; }
 
 /* ============== COVER ============== */
+/* The cover is just the banner image, full-screen: no logo, text or overlay. */
 .disp-cover {
-    background: linear-gradient(160deg, var(--disp-dark-1), var(--disp-dark-2));
+    background: #000;
 }
 .disp-cover-bg {
     position: absolute; inset: 0;
     background-size: cover;
     background-position: center;
-    opacity: 0.55;
-}
-.disp-cover-overlay {
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(11,18,36,0.55) 0%, rgba(11,18,36,0.85) 100%);
-}
-.disp-cover-content {
-    position: relative;
-    text-align: center;
-    padding: 0 6vw;
-    max-width: 90vw;
-}
-.disp-cover-logo { max-width: 260px; max-height: 200px; object-fit: contain; margin-bottom: 28px; }
-.disp-cover-name {
-    font-size: clamp(2.4rem, 5.2vw, 4.6rem);
-    font-weight: 800;
-    margin: 0 0 14px;
-    letter-spacing: -0.01em;
-    text-shadow: 0 2px 24px rgba(0,0,0,0.5);
-}
-.disp-cover-subtitle {
-    font-size: clamp(1.1rem, 2vw, 1.8rem);
-    color: #cdd4e6;
-    margin: 0;
-    font-weight: 500;
+    background-repeat: no-repeat;
 }
 
 /* ============== QUESTION ============== */
