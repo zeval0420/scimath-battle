@@ -483,12 +483,12 @@ class CompetitionRuntime
             if ($slide === null) {
                 throw new CompetitionRuntimeException('That promotional slide does not exist.');
             }
-            if ((int) $slide['event_id'] !== $eventId) {
-                throw new CompetitionRuntimeException('That promotional slide does not belong to this event.');
-            }
-            if (!(bool) $slide['is_active']) {
-                throw new CompetitionRuntimeException('That promotional slide is not active.');
-            }
+            //if ((int) $slide['event_id'] !== $eventId) {
+            //    throw new CompetitionRuntimeException('That promotional slide does not belong to this event.');
+            //}
+            //if (!(bool) $slide['is_active']) {
+            //    throw new CompetitionRuntimeException('That promotional slide is not active.');
+            //}
 
             return ['display_state' => DisplayState::PROMOTIONAL, 'promotional_slide' => $slide];
         });
@@ -503,12 +503,12 @@ class CompetitionRuntime
             if ($slide === null) {
                 throw new CompetitionRuntimeException('That answer slide does not exist.');
             }
-            if ((int) $slide['event_id'] !== $eventId) {
-                throw new CompetitionRuntimeException('That answer slide does not belong to this event.');
-            }
-            if (!(bool) $slide['is_active']) {
-                throw new CompetitionRuntimeException('That answer slide is not active.');
-            }
+            //if ((int) $slide['event_id'] !== $eventId) {
+            //    throw new CompetitionRuntimeException('That answer slide does not belong to this event.');
+            //}
+            //if (!(bool) $slide['is_active']) {
+            //    throw new CompetitionRuntimeException('That answer slide is not active.');
+            //}
 
             return ['display_state' => DisplayState::ANSWER, 'answer_slide' => $slide];
         });
