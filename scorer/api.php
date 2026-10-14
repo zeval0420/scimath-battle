@@ -20,7 +20,7 @@ function fail(int $code, string $msg): void
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $eventId = (int)($_GET['event'] ?? 0);
     if (!load_event($conn, $eventId)) fail(404, 'Event not found.');
-    echo json_encode(['ok' => true, 'scores' => load_scores($conn, $eventId)]);
+    echo json_encode(['ok' => true, 'scores' => load_scores($conn, $eventId), 'clincher' => (object)load_clincher($conn, $eventId)]);
     exit;
 }
 

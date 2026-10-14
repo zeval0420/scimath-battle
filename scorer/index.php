@@ -24,6 +24,7 @@ $payload = [
     'questions'   => $questions,
     'contestants' => $contestants,
     'scores'      => load_scores($conn, $eventId),
+    'clincher'    => (object)load_clincher($conn, $eventId),
     'current'     => $event['current_question_id'] === null ? null : (int)$event['current_question_id'],
     'rounds'      => ROUND_ORDER,
     'labels'      => ROUND_LABELS,

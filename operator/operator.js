@@ -84,6 +84,30 @@
       }).join('') + '</tbody>';
   }
 
+  function teamLabel(c) { return c.acronym || c.name; }
+
+  function renderClincher() {
+    var list = $('clincher-list');
+    if (list.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
+    var qs = snap.questions.filter(function (q) { return q.round === 'clincher'; });
+    if (!qs.length) {
+      list.innerHTML = '<div class="empty">No clincher questions. Add some on the Configure page.</div>';
+      return;
+    }
+    list.innerHTML = qs.map(function (q) {
+      var c = snap.clincher[q.id] || { participants: [], winners: [] };
+      var teams = snap.contestants.map(function (t) {
+        var playing = c.participants.indexOf(Number(t.id)) !== -1;
+        var won = c.winners.indexOf(Number(t.id)) !== -1;
+        return '<tr data-team="' + t.id + '"><td>' + esc(teamLabel(t)) + (t.acronym ? ' <span class="hint">' + esc(t.name) + '</span>' : '') + '</td>' +
+          '<td><label><input type="checkbox" data-clincher="play"' + (playing ? ' checked' : '') + '> Playing</label></td>' +
+          '<td><label><input type="checkbox" data-clincher="win"' + (won ? ' checked' : '') + (playing ? '' : ' disabled') + '> Winner</label></td></tr>';
+      }).join('');
+      return '<div class="stack clincher-q" data-clincher-q="' + q.id + '" style="gap:6px"><b>Clincher Q' + q.number + '</b>' +
+        '<table class="q-table"><tbody>' + teams + '</tbody></table></div>';
+    }).join('');
+  }
+
   function renderBoards() {
     var bu = snap.state.boards_up;
     if (document.activeElement === $('bu-text')) return;
@@ -136,6 +160,7 @@
     $('show-live').checked = !snap.state.hidden;
     $('show-banner').disabled = snap.state.hidden;
     renderQuestions();
+    renderClincher();
     renderBoards();
     renderPromos();
     renderResultsControls();
@@ -191,6 +216,25 @@
     } else if (t.matches('tr[data-qid]') && !e.target.closest('input')) {
       call('goto_question', { question_id: Number(t.dataset.qid) });
     }
+  });
+
+  // Clincher participants / winners: saved on every tick
+  document.addEventListener('change', function (e) {
+    var box = e.target.closest('[data-clincher]');
+    if (!box) return;
+    var wrap = box.closest('[data-clincher-q]');
+    if (box.dataset.clincher === 'play') {
+      var win = box.closest('tr').querySelector('[data-clincher=win]');
+      win.disabled = !box.checked;
+      if (!box.checked) win.checked = false;
+    }
+    function ids(kind) {
+      return Array.prototype.filter.call(wrap.querySelectorAll('[data-clincher=' + kind + ']'), function (b) { return b.checked; })
+        .map(function (b) { return Number(b.closest('tr').dataset.team); });
+    }
+    busy = true;
+    call('save_clincher', { question_id: Number(wrap.dataset.clincherQ), participants: ids('play'), winners: ids('win') })
+      .then(function () { busy = false; });
   });
 
   // Per-question points / time overrides (blank = round default)

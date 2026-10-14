@@ -3,6 +3,7 @@
 // POST: action, event, payload (JSON). Every response is {snapshot} or {error}.
 // The live screen state is one JSON row per event in scimath_screen_state (created on first use).
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
+require_once __DIR__ . '/../config/clincher.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -171,14 +172,17 @@ function result_data(int $eid, array $overlay, array $qs): array
         return ['kind' => 'round', 'round' => $round, 'title' => ROUND_LABEL[$round] . ' Round Results', 'rows' => $list];
     }
 
+    $wins = clincher_wins(load_clincher($GLOBALS['conn'], $eid));
     $list = [];
     foreach ($cons as $c) {
         $parts = array_fill_keys(ROUNDS, 0);
         foreach ($entries as $e) if ((int)$e['contestant_id'] === (int)$c['id']) $parts[$e['round']] += (int)$e['points_awarded'];
         $list[] = ['label' => $label($c), 'name' => $c['name'], 'parts' => $parts,
-                   'start' => (int)$c['starting_score'], 'total' => (int)$c['starting_score'] + array_sum($parts)];
+                   'start' => (int)$c['starting_score'], 'total' => (int)$c['starting_score'] + array_sum($parts),
+                   'wins' => $wins[(int)$c['id']] ?? 0];
     }
-    usort($list, fn($a, $b) => $b['total'] <=> $a['total']);
+    // Tied totals are settled by clincher wins.
+    usort($list, fn($a, $b) => [$b['total'], $b['wins']] <=> [$a['total'], $a['wins']]);
     return ['kind' => 'final', 'title' => 'Final Results', 'rows' => $list];
 }
 
@@ -243,6 +247,9 @@ function snapshot(int $eid, array $s, int $now, bool $operator): array
         $snap['promos'] = rows('SELECT id, title, file_path AS path FROM scimath_promotional_slides
                                 WHERE event_id = ? AND is_active = 1 ORDER BY display_order, id', [$eid]);
         $snap['rounds'] = array_map(fn($r) => ['value' => $r, 'label' => ROUND_LABEL[$r]], ROUNDS);
+        $snap['contestants'] = rows('SELECT id, name, acronym FROM scimath_contestants
+                                     WHERE event_id = ? AND is_active = 1 ORDER BY display_order, id', [$eid]);
+        $snap['clincher'] = (object)load_clincher($GLOBALS['conn'], $eid);
     }
     return $snap;
 }
@@ -256,6 +263,7 @@ try {
     $operator = ($p['role'] ?? '') === 'operator';
     if (!val('SELECT id FROM scimath_events WHERE id = ?', [$eid])) throw new UserError('Event not found.');
 
+    ensure_clincher_table($conn);
     $conn->begin_transaction();
     $s = lock_state($eid);
     $now = now_ms();
@@ -386,6 +394,22 @@ try {
             if (!$s['timer']['running'] && ($cur['id'] ?? 0) == ($p['id'] ?? 0) && !$s['timer']['ended'] && $s['timer']['remaining'] == $s['timer']['duration']) {
                 reset_timer($s, find_question($qs, $s['question_id'])); // keep an unstarted timer in sync with the new limit
                 $changed = true;
+            }
+            break;
+
+        case 'save_clincher': // participants + winners for one clincher question
+            $q = find_question($qs, (int)($p['question_id'] ?? 0));
+            if (!$q || $q['round'] !== 'clincher') throw new UserError('Pick a clincher question.');
+            $valid = array_map('intval', array_column(
+                rows('SELECT id FROM scimath_contestants WHERE event_id = ? AND is_active = 1', [$eid]), 'id'));
+            $parts = array_values(array_unique(array_map('intval', (array)($p['participants'] ?? []))));
+            $wins = array_values(array_unique(array_map('intval', (array)($p['winners'] ?? []))));
+            if (array_diff($parts, $valid)) throw new UserError('Unknown team selected.');
+            if (array_diff($wins, $parts)) throw new UserError('A winner must be one of the participants.');
+            run('DELETE FROM scimath_clincher_entries WHERE question_id = ?', [$q['id']]);
+            foreach ($parts as $cid) {
+                run('INSERT INTO scimath_clincher_entries (question_id, contestant_id, is_winner) VALUES (?, ?, ?)',
+                    [$q['id'], $cid, in_array($cid, $wins, true) ? 1 : 0]);
             }
             break;
 

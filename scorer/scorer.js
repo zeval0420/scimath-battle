@@ -50,8 +50,9 @@
   }
 
   // ---------- Applying server state ----------
-  function applyScores(list) {
-    var json = JSON.stringify(list);
+  function applyScores(list, clincher) {
+    if (clincher) DATA.clincher = clincher;
+    var json = JSON.stringify([list, DATA.clincher]);
     if (json === lastServerJson) return;
     lastServerJson = json;
     scores = {};
@@ -66,7 +67,7 @@
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.ok) throw new Error(d.error || 'error');
-        if (pending === 0) applyScores(d.scores);
+        if (pending === 0) applyScores(d.scores, d.clincher);
         setStatus(true, 'Synced ' + new Date().toLocaleTimeString());
       })
       .catch(function () { setStatus(false, 'Offline - retrying...'); });
@@ -109,8 +110,13 @@
     var q = qById[currentId];
     var teams = contestants;
     if (q.round === 'clincher') {
-      var tied = contestants.filter(function (c) { return c.clincher; });
-      if (tied.length) teams = tied; // only flagged teams play the clincher
+      // Only the teams the operator picked for this clincher round play it.
+      var picked = (DATA.clincher[q.id] || { participants: [] }).participants;
+      teams = contestants.filter(function (c) { return picked.indexOf(c.id) !== -1; });
+      if (!teams.length) {
+        el.cards.innerHTML = '<div class="empty">The operator has not selected participants for this clincher round yet.</div>';
+        return;
+      }
     }
     el.cards.innerHTML = teams.map(function (c) {
       var s = scores[key(q.id, c.id)];
@@ -159,7 +165,7 @@
         if (!d.ok) throw new Error(d.error || 'error');
         pending--;
         lastServerJson = '';
-        if (pending === 0) applyScores(d.scores);
+        if (pending === 0) applyScores(d.scores, d.clincher);
         setStatus(true, 'Saved ' + new Date().toLocaleTimeString());
       })
       .catch(function (err) {
@@ -186,8 +192,12 @@
       });
       return t;
     });
-    var ranks = totals.map(function (t) {
-      return 1 + totals.filter(function (o) { return o > t; }).length;
+    // Clincher wins settle ties on the total
+    var wins = contestants.map(function (c) {
+      return Object.keys(DATA.clincher).filter(function (qid) { return DATA.clincher[qid].winners.indexOf(c.id) !== -1; }).length;
+    });
+    var ranks = totals.map(function (t, i) {
+      return 1 + totals.filter(function (o, j) { return o > t || (o === t && wins[j] > wins[i]); }).length;
     });
 
     var html = '<thead><tr><th class="col-sticky" rowspan="2">School</th>';
@@ -231,7 +241,7 @@
 
   scores = {};
   DATA.scores.forEach(function (s) { scores[key(s.q, s.c)] = s; });
-  lastServerJson = JSON.stringify(DATA.scores);
+  lastServerJson = JSON.stringify([DATA.scores, DATA.clincher]);
 
   if (questions.length && contestants.length) {
     buildSelect();

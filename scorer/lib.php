@@ -1,6 +1,7 @@
 <?php
 // scorer/lib.php - data loading shared by index.php (first paint) and api.php (sync + save).
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
+require_once __DIR__ . '/../config/clincher.php';
 
 const ROUND_ORDER  = ['easy', 'medium', 'hard', 'clincher'];
 const ROUND_LABELS = ['easy' => 'Easy', 'medium' => 'Average', 'hard' => 'Difficult', 'clincher' => 'Clincher'];
@@ -46,7 +47,7 @@ function load_questions(mysqli $conn, int $eventId, int $defaultPoints): array
 function load_contestants(mysqli $conn, int $eventId): array
 {
     $stmt = $conn->prepare(
-        "SELECT id, name, acronym, team_code, starting_score, is_clincher
+        "SELECT id, name, acronym, team_code, starting_score
          FROM scimath_contestants
          WHERE event_id = ? AND is_active = 1
          ORDER BY display_order, id"
@@ -60,7 +61,6 @@ function load_contestants(mysqli $conn, int $eventId): array
             'label'   => $r['acronym'] ?: ($r['team_code'] ?: $r['name']),
             'name'    => $r['name'],
             'start'   => (int)$r['starting_score'],
-            'clincher'=> (bool)$r['is_clincher'],
         ];
     }
     return $out;

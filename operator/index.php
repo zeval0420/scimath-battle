@@ -99,6 +99,11 @@ include __DIR__ . '/../src/universal/header.php';
       <div class="table-wrap"><table class="q-table" id="q-table"></table></div>
   <?php card_close(); ?>
 
+  <?php card_open('clincher', 'Clincher rounds'); ?>
+      <p class="hint">Only needed for ties. Each clincher question is its own round: pick the teams playing it, then mark who won. Winners rank above the teams they beat on tied totals.</p>
+      <div class="stack" id="clincher-list"></div>
+  <?php card_close(); ?>
+
   <?php card_open('boards', 'Boards Up'); ?>
       <p class="hint">Shown automatically when a question's timer ends. Use text or one of the promotional slides.</p>
       <div class="row">
