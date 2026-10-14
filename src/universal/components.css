@@ -3,25 +3,31 @@
    Plus a few layout helpers: .stack, .row, .grid, .switch */
 
 :root {
-  --bg: #e9ecef;
+  --bg: #eef2f9;
   --surface: #ffffff;
-  --surface-2: #f4f6f8;
-  --ink: #17202b;
-  --ink-soft: #5b6676;
-  --line: #cfd5dc;
-  --accent: #0e6b73;
+  --surface-2: #f3f6fc;
+  --ink: #14182b;
+  --ink-soft: #4d5670;
+  --line: #cdd5e6;
+  --accent: #0036af;
   --accent-ink: #ffffff;
-  --accent-soft: #d6ecee;
-  --danger: #b3362b;
+  --accent-soft: #dce7fb;
+  --danger: #b3261e;
   --warn: #b97a0a;
 
-  --radius: 6px;
-  --radius-lg: 10px;
-  --gap: 12px;
-  --pad: 16px;
+  --navy: #0e0054;
+  --gradient: linear-gradient(to right, #0e0054, #0036af, #0e0054);
+  --gradient-btn: linear-gradient(135deg, #0a46c9, #0e0054);
+  --shadow: 0 4px 16px rgba(14, 0, 84, 0.08);
 
-  --font: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-size: 15px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --pill: 999px;
+  --gap: 14px;
+  --pad: 18px;
+
+  --font: "Raleway", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-size: 16px;
 }
 
 *,
@@ -37,7 +43,34 @@ body {
   color: var(--ink);
   font-family: var(--font);
   font-size: var(--font-size);
-  line-height: 1.45;
+  line-height: 1.5;
+}
+
+/* Pages with the shared header and footer: footer sticks to the bottom on short pages */
+.app-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px var(--pad);
+  flex: 1 0 auto;
+}
+
+a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Notices (success / error banners) */
+.notice {
+  padding: 12px var(--pad);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
 }
 
 /* ---------- Button ---------- */
@@ -47,21 +80,21 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 38px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 0 20px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--pill);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, transform 0.05s;
+  transition: background 0.12s, border-color 0.12s, transform 0.05s, box-shadow 0.12s;
 }
 
 .btn:hover {
-  background: var(--surface-2);
-  border-color: var(--ink-soft);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 .btn:active {
@@ -81,14 +114,16 @@ body {
 }
 
 .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--gradient-btn);
+  border-color: transparent;
   color: var(--accent-ink);
+  box-shadow: 0 3px 10px rgba(0, 54, 175, 0.3);
 }
 
 .btn-primary:hover {
-  background: #0a5860;
-  border-color: #0a5860;
+  background: var(--gradient-btn);
+  border-color: transparent;
+  filter: brightness(1.15);
 }
 
 .btn-danger {
@@ -108,14 +143,14 @@ body {
 }
 
 .btn-sm {
-  min-height: 30px;
-  padding: 0 10px;
-  font-size: 13px;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
 }
 
 .btn-lg {
-  min-height: 48px;
-  padding: 0 24px;
+  min-height: 52px;
+  padding: 0 28px;
   font-size: 17px;
 }
 
@@ -128,26 +163,27 @@ body {
 
 .dropdown {
   appearance: none;
-  min-height: 38px;
-  padding: 0 36px 0 12px;
+  min-height: 44px;
+  padding: 0 40px 0 16px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--pill);
   background-color: var(--surface);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235b6676' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
+  background-position: right 16px center;
   color: var(--ink);
   font: inherit;
   cursor: pointer;
+  max-width: 100%;
 }
 
 .dropdown:hover {
-  border-color: var(--ink-soft);
+  border-color: var(--accent);
 }
 
 .dropdown-sm {
-  min-height: 30px;
-  font-size: 13px;
+  min-height: 38px;
+  font-size: 14px;
 }
 
 /* ---------- Container / Card ---------- */
@@ -156,6 +192,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   overflow: hidden;
 }
 
@@ -164,14 +201,28 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: var(--gap);
-  padding: 10px var(--pad);
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--line);
+  padding: 10px var(--pad) 10px 22px;
+  background: var(--gradient);
+  color: #fff;
+}
+
+.card-head .btn-ghost {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.card-head .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: #fff;
+}
+
+.card-head .btn:focus-visible {
+  outline-color: #fff;
 }
 
 .card-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
 }
 
@@ -219,7 +270,8 @@ body {
 }
 
 .field-label {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink-soft);
 }
 
@@ -285,10 +337,10 @@ body {
 /* ---------- Text input / date input ---------- */
 
 .input {
-  min-height: 38px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 16px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--pill);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -296,7 +348,7 @@ body {
 }
 
 .input:hover {
-  border-color: var(--ink-soft);
+  border-color: var(--accent);
 }
 
 .input:focus-visible {
@@ -305,8 +357,8 @@ body {
 }
 
 .input-sm {
-  min-height: 30px;
-  font-size: 13px;
+  min-height: 38px;
+  font-size: 14px;
 }
 
 /* ---------- File input ---------- */
@@ -314,8 +366,8 @@ body {
 .file-input {
   width: 100%;
   padding: 10px;
-  border: 1px dashed var(--ink-soft);
-  border-radius: var(--radius);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-lg);
   background: var(--surface-2);
   color: var(--ink);
   font: inherit;
@@ -324,10 +376,10 @@ body {
 
 .file-input::file-selector-button {
   margin-right: 12px;
-  min-height: 30px;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 16px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--pill);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -341,7 +393,7 @@ body {
 }
 
 .field-hint {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-soft);
 }
 
@@ -382,8 +434,8 @@ a.btn {
   padding: 24px;
   text-align: center;
   color: var(--ink-soft);
-  border: 1px dashed var(--line);
-  border-radius: var(--radius);
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-lg);
 }
 
 
@@ -484,7 +536,7 @@ a.btn {
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
 }
 
 .table {

@@ -1,5 +1,5 @@
 <?php
-// configure/index.php - event configuration. No header or footer.
+// configure/index.php - event configuration. Uses the shared header and footer.
 // The page shell is static; configure.js loads and renders everything through api.php.
 require_once __DIR__ . '/../config/auth.php';
 require_login();
@@ -33,10 +33,22 @@ $sections = [
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Configure - <?= h($event['name']) ?></title>
   <link rel="stylesheet" href="../src/universal/components.css">
+  <link rel="stylesheet" href="../src/universal/HeadFoot.css">
   <link rel="stylesheet" href="configure.css">
 </head>
-<body data-event="<?= $eventId ?>">
-<div class="page stack">
+<body class="app-body" data-event="<?= $eventId ?>">
+<?php
+$base = '../';
+$header_nav = [
+  ['All events', '../admin/index.php', false],
+  ['Display',   '../display/index.php?event=' . $eventId, false],
+  ['Operate',   '../operator/index.php?event=' . $eventId, false],
+  ['Score',     '../scorer/index.php?event=' . $eventId, false],
+  ['Configure', '../configure/index.php?event=' . $eventId, true],
+];
+include __DIR__ . '/../src/universal/header.php';
+?>
+<main class="page stack" id="main">
 
   <div class="row row-spread">
     <div>
@@ -56,7 +68,8 @@ $sections = [
   </section>
   <?php endforeach; ?>
 
-</div>
+</main>
+<?php include __DIR__ . '/../src/universal/footer.php'; ?>
 <script src="configure.js"></script>
 </body>
 </html>

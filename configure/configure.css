@@ -1,14 +1,13 @@
 /* configure.css - styles specific to the configuration page (builds on components.css) */
 
-.page { max-width: 1100px; margin: 0 auto; padding: var(--pad); }
-.page-title { margin: 4px 0 0; font-size: 22px; }
+.page-title { margin: 4px 0 0; font-size: 26px; color: var(--navy); }
 
 .status { font-size: 13px; color: var(--ink-soft); min-height: 1.4em; }
 .status.is-error { color: var(--danger); font-weight: 700; }
 
 .hint { margin: 0; font-size: 13px; color: var(--ink-soft); }
 .split { display: grid; gap: var(--pad); grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.panel { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
+.panel { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
 .panel h3 { margin: 0; font-size: 15px; }
 
 .preview { max-width: 100%; max-height: 160px; object-fit: contain; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); align-self: flex-start; }
@@ -18,7 +17,7 @@ input[type=range] { width: 100%; }
 
 .num { width: 100px; }
 .rounds-grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-.round-box { border-radius: var(--radius); padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
+.round-box { border-radius: var(--radius-lg); padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
 .round-easy { background: var(--round-easy); }
 .round-medium { background: var(--round-average); }
 .round-hard { background: var(--round-difficult); }
@@ -27,8 +26,8 @@ input[type=range] { width: 100%; }
 
 /* Slide classification tiles */
 .tile-grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
-.tile { border: 2px solid var(--line); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); }
-.tile img { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #000; border-radius: 4px; }
+.tile { border: 2px solid var(--line); border-radius: var(--radius-lg); padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); }
+.tile img { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #000; border-radius: var(--radius); }
 .tile-name { font-size: 12px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile-question { border-color: var(--accent); }
 .tile-answer { border-color: var(--success); }

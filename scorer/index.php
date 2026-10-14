@@ -1,5 +1,5 @@
 <?php
-// scorer/index.php - scorer page. No header or footer.
+// scorer/index.php - scorer page. Uses the shared header and footer.
 // Several scorers can open this page for the same event; scores are saved to the database
 // on every click and every open page polls the server so all tables stay in sync.
 require_once __DIR__ . '/../config/auth.php';
@@ -37,8 +37,8 @@ $payload = [
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Scorer - <?= h($event['name']) ?></title>
   <link rel="stylesheet" href="../src/universal/components.css">
+  <link rel="stylesheet" href="../src/universal/HeadFoot.css">
   <style>
-    .page { max-width: 1100px; margin: 0 auto; padding: var(--pad); }
     .event-name { margin: 0; font-size: 26px; font-weight: 700; }
     .sync { font-size: 13px; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 6px; }
     .sync::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--success); }
@@ -54,8 +54,19 @@ $payload = [
     .scorer-name { width: 160px; }
   </style>
 </head>
-<body>
-<div class="page stack">
+<body class="app-body">
+<?php
+$base = '../';
+$header_nav = [
+  ['All events', '../admin/index.php', false],
+  ['Display',   '../display/index.php?event=' . $eventId, false],
+  ['Operate',   '../operator/index.php?event=' . $eventId, false],
+  ['Score',     '../scorer/index.php?event=' . $eventId, true],
+  ['Configure', '../configure/index.php?event=' . $eventId, false],
+];
+include __DIR__ . '/../src/universal/header.php';
+?>
+<main class="page stack" id="main">
 
   <div class="row row-spread">
     <h1 class="event-name"><?= h($event['name']) ?></h1>
@@ -118,7 +129,8 @@ $payload = [
     </div>
   </section>
 
-</div>
+</main>
+<?php include __DIR__ . '/../src/universal/footer.php'; ?>
 
 <script>
   var DATA = <?= json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;

@@ -1,7 +1,6 @@
 /* operator.css - operator page layout (builds on components.css) */
 
-.page { max-width: 1100px; margin: 0 auto; padding: var(--pad); }
-.page-title { margin: 4px 0 0; font-size: 22px; }
+.page-title { margin: 4px 0 0; font-size: 26px; color: var(--navy); }
 .status { font-size: 13px; color: var(--ink-soft); min-height: 1.4em; }
 .status.is-error { color: var(--danger); font-weight: 700; }
 .hint { margin: 0; font-size: 13px; color: var(--ink-soft); }
@@ -15,7 +14,7 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: #000;
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
 }
 .screen-frame iframe {
   position: absolute;
@@ -76,6 +75,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   min-width: 200px;
+  border-radius: var(--radius-lg);
 }
 .timer-display.is-low { color: var(--danger); }
 

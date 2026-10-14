@@ -1,5 +1,5 @@
 <?php
-// operator/index.php - operator control panel. No header or footer.
+// operator/index.php - operator control panel. Uses the shared header and footer.
 // Sections are collapsible with the button in each card head.
 // The page shell is static; operator.js renders everything from operator/api.php.
 require_once __DIR__ . '/../config/auth.php';
@@ -36,10 +36,22 @@ function card_close() { ?>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Operator - <?= h($event['name']) ?></title>
   <link rel="stylesheet" href="../src/universal/components.css">
+  <link rel="stylesheet" href="../src/universal/HeadFoot.css">
   <link rel="stylesheet" href="operator.css">
 </head>
-<body data-event="<?= $eventId ?>">
-<div class="page stack">
+<body class="app-body" data-event="<?= $eventId ?>">
+<?php
+$base = '../';
+$header_nav = [
+  ['All events', '../admin/index.php', false],
+  ['Display',   '../display/index.php?event=' . $eventId, false],
+  ['Operate',   '../operator/index.php?event=' . $eventId, true],
+  ['Score',     '../scorer/index.php?event=' . $eventId, false],
+  ['Configure', '../configure/index.php?event=' . $eventId, false],
+];
+include __DIR__ . '/../src/universal/header.php';
+?>
+<main class="page stack" id="main">
 
   <div class="row row-spread">
     <div>
@@ -132,7 +144,8 @@ function card_close() { ?>
       </div>
   <?php card_close(); ?>
 
-</div>
+</main>
+<?php include __DIR__ . '/../src/universal/footer.php'; ?>
 <script src="operator.js"></script>
 </body>
 </html>

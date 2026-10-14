@@ -1,5 +1,5 @@
 <?php
-// admin/index.php - event creation and event cards. No header or footer.
+// admin/index.php - event creation and event cards. Uses the shared header and footer.
 require_once __DIR__ . '/../config/auth.php';
 require_login();
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
@@ -37,17 +37,22 @@ $createdId = (int)($_GET['created'] ?? 0);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>IRC QUEST Admin</title>
   <link rel="stylesheet" href="../src/universal/components.css">
+  <link rel="stylesheet" href="../src/universal/HeadFoot.css">
   <style>
-    .page { max-width: 1100px; margin: 0 auto; padding: var(--pad); }
-    .notice { padding: 10px var(--pad); border-radius: var(--radius); border: 1px solid var(--line); margin-bottom: var(--gap); }
+    .notice { margin-bottom: var(--gap); }
     .notice-ok { background: var(--success-soft); color: var(--success); border-color: var(--success); }
     .notice-error { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
     .notice ul { margin: 0; padding-left: 18px; }
-    .badge { text-transform: uppercase; }
+    .badge { text-transform: uppercase; display: inline-block; padding: 1px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; }
   </style>
 </head>
-<body>
-<div class="page stack">
+<body class="app-body">
+<?php
+$base = '../';
+$header_nav = [];
+include __DIR__ . '/../src/universal/header.php';
+?>
+<main class="page stack" id="main">
 
   <!-- ===== Event creation ===== -->
   <section class="card" id="sec-create">
@@ -140,7 +145,8 @@ $createdId = (int)($_GET['created'] ?? 0);
     </div>
   </section>
 
-</div>
+</main>
+<?php include __DIR__ . '/../src/universal/footer.php'; ?>
 
 <script src="create_event.js"></script>
 <script>
