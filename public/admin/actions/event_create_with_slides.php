@@ -138,8 +138,19 @@ function processMultiUpload(int $eventId, array $files): array
 {
     $slidesData = [];
     $count = count($files['name']);
+    $uploadedCount = 0;
+    $skippedCount = 0;
+    $maxFiles = (int) ini_get('max_file_uploads');
+    
     for ($i = 0; $i < $count; $i++) {
-        if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
+        if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+            if ($files['error'][$i] === UPLOAD_ERR_NO_FILE) {
+                // This can happen when max_file_uploads limit is reached
+                $skippedCount++;
+                continue;
+            }
+            continue;
+        }
         $originalName = basename($files['name'][$i]);
         if (!preg_match('/\.(png|jpe?g|webp)$/i', $originalName)) continue;
 
@@ -150,9 +161,15 @@ function processMultiUpload(int $eventId, array $files): array
                 'filename' => $originalName,
                 'tempPath' => $tmpName,
             ];
+            $uploadedCount++;
         } catch (RuntimeException $e) {
             // Skip invalid files
         }
+    }
+    
+    // Check if files were skipped due to upload limits
+    if ($skippedCount > 0 || $count > $maxFiles) {
+        error_log("processMultiUpload: $count files submitted, $uploadedCount processed, $skippedCount skipped (max_file_uploads limit: $maxFiles)");
     }
 
     return saveSlidesFromData($eventId, $slidesData);
@@ -161,7 +178,16 @@ function processMultiUpload(int $eventId, array $files): array
 function saveSlidesFromData(int $eventId, array $slidesData): array
 {
     if (empty($slidesData)) {
-        return ['questions' => 0, 'promo' => 0, 'answers' => 0, 'banner' => false, 'errors' => ['No valid images found']];
+        $maxFiles = (int) ini_get('max_file_uploads');
+        $postMaxSize = ini_get('post_max_size');
+        $uploadMaxSize = ini_get('upload_max_filesize');
+        $msg = "No valid images found. ";
+        if ($maxFiles < 100) {
+            $msg .= "PHP max_file_uploads limit is $maxFiles (you uploaded 100 files). ";
+            $msg .= "Please use a ZIP file instead, or increase max_file_uploads in php.ini. ";
+        }
+        $msg .= "post_max_size: $postMaxSize, upload_max_filesize: $uploadMaxSize.";
+        return ['questions' => 0, 'promo' => 0, 'answers' => 0, 'banner' => false, 'errors' => [$msg]];
     }
 
     // Get classifications from POST
