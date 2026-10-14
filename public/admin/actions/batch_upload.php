@@ -103,22 +103,27 @@ if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
     for ($i = 0; $i < $zip->numFiles; $i++) {
         $entry = $zip->statIndex($i);
         $name = $entry['name'];
+        error_log('batch_upload: Processing file ' . ($i + 1) . ': ' . $name);
 
         // Skip directories and non-image files
         if (str_ends_with($name, '/') || !preg_match('/\.(png|jpe?g|webp)$/i', $name)) {
+            error_log('batch_upload: Skipping non-image or directory: ' . $name);
             continue;
         }
 
         $content = $zip->getFromIndex($i);
         if ($content === false) {
+            error_log('batch_upload: Failed to extract content from: ' . $name);
             continue;
         }
 
         $tmpName = sys_get_temp_dir() . '/scimath_batch_' . $sessionId . '_' . bin2hex(random_bytes(4)) . '_' . basename($name);
         file_put_contents($tmpName, $content);
+        error_log('batch_upload: Extracted to: ' . $tmpName . ', size: ' . filesize($tmpName));
 
         try {
             $meta = validateImageFile($tmpName);
+            error_log('batch_upload: Valid image: ' . $name . ', mime: ' . $meta['mime']);
             $staged[] = [
                 'index'  => count($staged),
                 'filename' => basename($name),
@@ -130,6 +135,7 @@ if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
         } catch (RuntimeException $e) {
             @unlink($tmpName);
             $errors[] = basename($name) . ': ' . $e->getMessage();
+            error_log('batch_upload: Image validation failed for ' . $name . ': ' . $e->getMessage());
         }
     }
     $zip->close();

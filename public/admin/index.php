@@ -59,7 +59,7 @@ require __DIR__ . '/includes/header.php';
         <div id="step-create-section">
             <h2>Create a new event</h2>
             <div class="card">
-                <form id="event-create-form">
+                <form id="event-create-form" method="post">
                     <?= Csrf::field() ?>
                     <div class="field <?= isset($errors['name']) ? 'has-error' : '' ?>">
                         <label for="name">Event name *</label>

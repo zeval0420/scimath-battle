@@ -34,10 +34,12 @@
                 body: formData
             })
             .then(function(r) {
+                console.log('[index.js] event_create_ajax response status:', r.status);
                 if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 200)); });
                 return r.json();
             })
             .then(function(data) {
+                console.log('[index.js] event_create_ajax response data:', data);
                 if (data.error) {
                     showError(data.error);
                     if (btn) btn.disabled = false;
@@ -52,10 +54,12 @@
 
                 // Initialize slide upload with the new event ID
                 setTimeout(function() {
+                    console.log('[index.js] Calling initSlideUpload with event_id:', data.event_id);
                     initSlideUpload(data.event_id);
                 }, 100);
             })
             .catch(function(err) {
+                console.error('[index.js] event_create_ajax error:', err);
                 showError('Failed to create event: ' + err.message);
                 if (btn) btn.disabled = false;
             });
@@ -77,6 +81,7 @@
             if (mutation.target.id === 'step-upload-section' && mutation.target.style.display !== 'none') {
                 var eid = slideEventId ? slideEventId.value : null;
                 if (eid) {
+                    console.log('[index.js] MutationObserver detected step-upload-section visible, calling initSlideUpload:', eid);
                     initSlideUpload(eid);
                 }
             }

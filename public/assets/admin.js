@@ -69,6 +69,8 @@
     // ---- Batch Slide Upload -----------------------------------------
     // Can be called with an eventId parameter for use on index.php
     function initSlideUpload(eventId) {
+        console.log('[slide-upload] initSlideUpload called with eventId:', eventId);
+        
         var dropZone = document.getElementById('slide-upload-area');
         var zipInput = document.getElementById('slide-zip-input');
         var multiInput = document.getElementById('slide-multi-input');
@@ -84,6 +86,29 @@
         var progressBar = document.getElementById('slide-progress-bar');
         var progressText = document.getElementById('slide-progress-text');
         var progressPercent = document.getElementById('slide-progress-percent');
+
+        console.log('[slide-upload] DOM elements found:', {
+            dropZone: !!dropZone,
+            zipInput: !!zipInput,
+            multiInput: !!multiInput,
+            previewGrid: !!previewGrid,
+            classifyPanel: !!classifyPanel,
+            classifyList: !!classifyList,
+            saveBtn: !!saveBtn,
+            clearBtn: !!clearBtn,
+            statusEl: !!statusEl,
+            fileInfoEl: !!fileInfoEl,
+            errorEl: !!errorEl,
+            progressEl: !!progressEl,
+            progressBar: !!progressBar,
+            progressText: !!progressText,
+            progressPercent: !!progressPercent
+        });
+
+        if (!dropZone) {
+            console.error('[slide-upload] slide-upload-area NOT FOUND in DOM!');
+            return;
+        }
 
         // Use provided eventId or get from URL
         if (!eventId) {
@@ -136,20 +161,28 @@
 
         // Show selected file names
         multiInput.addEventListener('change', function() {
+            console.log('[slide-upload] multiInput change event fired');
             if (multiInput.files && multiInput.files.length > 0) {
                 var names = [];
                 for (var i = 0; i < multiInput.files.length; i++) {
                     names.push(multiInput.files[i].name);
                 }
+                console.log('[slide-upload] Selected files:', names);
                 if (fileInfoEl) fileInfoEl.textContent = 'Selected: ' + names.join(', ');
                 handleFiles(multiInput.files);
+            } else {
+                console.log('[slide-upload] No files in multiInput');
             }
         });
 
         zipInput.addEventListener('change', function() {
+            console.log('[slide-upload] zipInput change event fired');
             if (zipInput.files && zipInput.files.length > 0) {
+                console.log('[slide-upload] ZIP file selected:', zipInput.files[0].name, 'size:', zipInput.files[0].size);
                 if (fileInfoEl) fileInfoEl.textContent = 'Selected: ' + zipInput.files[0].name;
                 handleZip(zipInput.files[0]);
+            } else {
+                console.log('[slide-upload] No files in zipInput');
             }
         });
 
@@ -184,8 +217,24 @@
             if (statusEl) statusEl.textContent = msg;
         }
 
-        function handleError(msg) {
-            showError(msg);
+        function showError(msg) {
+            console.error('[slide-upload] Error:', msg);
+            if (errorEl) {
+                errorEl.textContent = msg;
+                errorEl.style.display = 'block';
+            }
+            if (statusEl) {
+                statusEl.style.color = 'var(--error)';
+                statusEl.textContent = 'Error: ' + msg;
+            }
+        }
+
+        function clearError() {
+            if (errorEl) errorEl.style.display = 'none';
+            if (statusEl) {
+                statusEl.style.color = '';
+                statusEl.textContent = '';
+            }
         }
 
         function handleZip(file) {
@@ -195,7 +244,7 @@
             console.log('[slide-upload] Event ID:', eventId);
             
             if (!csrf) {
-                handleError('CSRF token missing. Please refresh the page.');
+                showError('CSRF token missing. Please refresh the page.');
                 return;
             }
             
@@ -219,25 +268,25 @@
             xhr.addEventListener('load', function() {
                 console.log('[slide-upload] Response status:', xhr.status);
                 if (xhr.status !== 200) {
-                    handleError('Upload failed with HTTP ' + xhr.status);
+                    showError('Upload failed with HTTP ' + xhr.status);
                     return;
                 }
                 try {
                     var data = JSON.parse(xhr.responseText);
                     console.log('[slide-upload] Response data:', JSON.stringify(data).substring(0, 500));
-                    if (data.error) { handleError(data.error); return; }
+                    if (data.error) { showError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
                     hideProgress();
                     log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
                 } catch(e) {
-                    handleError('Invalid response from server');
+                    showError('Invalid response from server');
                 }
             });
             
             xhr.addEventListener('error', function() {
-                handleError('Network error during upload');
+                showError('Network error during upload');
             });
             
             xhr.send(form);
@@ -260,7 +309,7 @@
             } else if (imageFiles.length > 0) {
                 uploadMulti(imageFiles);
             } else {
-                handleError('No valid image files found. Use PNG, JPG, or WebP.');
+                showError('No valid image files found. Use PNG, JPG, or WebP.');
             }
         }
 
@@ -288,34 +337,41 @@
             xhr.addEventListener('load', function() {
                 console.log('[slide-upload] Response status:', xhr.status);
                 if (xhr.status !== 200) {
-                    handleError('Upload failed with HTTP ' + xhr.status);
+                    showError('Upload failed with HTTP ' + xhr.status);
                     return;
                 }
                 try {
                     var data = JSON.parse(xhr.responseText);
                     console.log('[slide-upload] Response data:', JSON.stringify(data).substring(0, 500));
-                    if (data.error) { handleError(data.error); return; }
+                    if (data.error) { showError(data.error); return; }
                     stagedImages = data.images || [];
                     sessionId = data.sessionId;
                     hideProgress();
                     log('Uploaded ' + stagedImages.length + ' image(s). Classify below.');
                     renderPreviews(stagedImages);
                 } catch(e) {
-                    handleError('Invalid response from server');
+                    showError('Invalid response from server');
                 }
             });
             
             xhr.addEventListener('error', function() {
-                handleError('Network error during upload');
+                showError('Network error during upload');
             });
             
             xhr.send(form);
         }
 
         function renderPreviews(images) {
-            if (!previewGrid) return;
+            console.log('[slide-upload] renderPreviews called with', images.length, 'images');
+            if (!previewGrid) {
+                console.error('[slide-upload] previewGrid not found!');
+                return;
+            }
+            if (!classifyList) {
+                console.error('[slide-upload] classifyList not found!');
+                return;
+            }
             previewGrid.innerHTML = '';
-            if (!classifyList) return;
             classifyList.innerHTML = '';
             images.forEach(function(img) {
                 var card = document.createElement('div');
@@ -402,7 +458,7 @@
                         return r.json();
                     })
                     .then(function(result) {
-                        if (result.error) { handleError(result.error); return; }
+                        if (result.error) { showError(result.error); return; }
                         log('Saved ' + result.created_questions + ' question(s), ' +
                             result.created_promo + ' promo slide(s), ' +
                             result.created_answers + ' answer slide(s).' +
@@ -414,7 +470,7 @@
                             setTimeout(function() { location.reload(); }, 1500);
                         }
                     })
-                    .catch(function(err) { handleError(err.message); });
+                    .catch(function(err) { showError(err.message); });
             });
         }
 
