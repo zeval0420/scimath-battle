@@ -708,6 +708,51 @@ require __DIR__ . '/includes/header.php';
 
         <div id="slide-preview-grid" class="slide-grid" style="display:none;"></div>
 
+        <div id="slide-existing-summary" style="margin-top:20px;">
+            <h3>Uploaded Slides</h3>
+            <?php
+                $existingQuestions = Question::forEvent($eventId);
+                $existingAnswers = AnswerSlide::forEvent($eventId);
+                $existingPromo = PromotionalSlide::forEvent($eventId);
+                $hasSlides = !empty($existingQuestions) || !empty($existingAnswers) || !empty($existingPromo);
+            ?>
+            <?php if (!$hasSlides): ?>
+                <p class="muted">No slides uploaded yet. Use the upload area above to add slides.</p>
+            <?php else: ?>
+                <?php if (!empty($existingQuestions)): ?>
+                    <h4>Questions (<?= count($existingQuestions) ?>)</h4>
+                    <table>
+                        <thead><tr><th>Preview</th><th>#</th><th>Round</th><th>Answer</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($existingQuestions as $q): ?>
+                            <?php $ans = AnswerSlide::forQuestion($eventId, (int) $q['id']); ?>
+                            <tr>
+                                <td><img class="thumb" src="../<?= htmlspecialchars($q['image_path']) ?>" alt=""></td>
+                                <td>Q<?= (int) $q['question_number'] ?></td>
+                                <td><?= htmlspecialchars(Round::label($q['round'] ?? Round::EASY)) ?></td>
+                                <td><?php if (!empty($ans)): ?><img class="thumb" src="../<?= htmlspecialchars($ans[0]['image_path']) ?>" alt=""><?php else: ?><span class="muted">—</span><?php endif; ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+                <?php if (!empty($existingPromo)): ?>
+                    <h4>Promotional Slides (<?= count($existingPromo) ?>)</h4>
+                    <table>
+                        <thead><tr><th>Preview</th><th>Title</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($existingPromo as $p): ?>
+                            <tr>
+                                <td><?php if (!empty($p['file_path'])): ?><img class="thumb" src="../<?= htmlspecialchars($p['file_path']) ?>" alt=""><?php endif; ?></td>
+                                <td><?= htmlspecialchars($p['title']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+
         <div id="slide-classify-panel" style="display:none;margin-top:20px;">
             <h3>Classify each slide</h3>
             <p class="hint">When you select "Question Slide", a difficulty dropdown will appear. Answer slides auto-pair to question slides in order.</p>
