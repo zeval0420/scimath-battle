@@ -71,6 +71,17 @@ class CompetitionRuntime
                 $isLastQuestion = ($idx === count($questions) - 1);
             }
         }
+        $answerSlide = null;
+        $promotionalSlide = null;
+
+        if ($session['display_state'] === DisplayState::ANSWER) {
+            // You need to persist the selected slide ID in the session
+            // for this lookup to work.
+        }
+
+        if ($session['display_state'] === DisplayState::PROMOTIONAL) {
+            // Same requirement for promotional slides.
+        }
 
         return [
             'event' => [
