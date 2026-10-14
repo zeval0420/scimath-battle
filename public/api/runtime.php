@@ -195,8 +195,7 @@ try {
 
         case 'end_round':
             require_write();
-            $round = isset($input['round']) && $input['round'] !== '' ? (string) $input['round'] : null;
-            api_ok(['state' => CompetitionRuntime::endRound($eventId, $round)]);
+            api_ok(['state' => CompetitionRuntime::endRound($eventId)]);
             break;
 
         // ---- Scoring ----------------------------------------------------

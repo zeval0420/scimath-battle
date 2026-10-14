@@ -10,16 +10,6 @@
     var allQuestions = JSON.parse(root.getAttribute('data-questions') || '[]');
     var lastScoredQuestionId = parseInt(root.getAttribute('data-last-scored-question-id'), 10) || null;
 
-    // The "Show Answer" button is question-scoped: it must resolve the answer
-    // slide that belongs to the current question. Question ids and answer-slide
-    // ids are separate sequences, so we look the mapping up from the
-    // server-rendered option list (each option carries data-question-id).
-    function answerSlideIdForQuestion(questionId) {
-        if (!questionId) return null;
-        var opt = document.querySelector('#op-answer-select option[data-question-id="' + questionId + '"]');
-        return opt && opt.value ? opt.value : null;
-    }
-
     var POLL_MS = 1000;
     var pollTimer = null;
     var actionInFlight = false; // prevents overlapping requests / double-submission
@@ -188,6 +178,11 @@
         document.getElementById('op-btn-show-round-ranking').disabled = !state.is_active;
         document.getElementById('op-btn-return-to-question').disabled = !state.is_active || q === null;
         document.getElementById('op-btn-return-to-cover').disabled = !state.is_active;
+        var rankRoundSelect = document.getElementById('op-rank-round-select');
+        if (rankRoundSelect) {
+            rankRoundSelect.disabled = !state.is_active;
+            if (state.ranking_round) rankRoundSelect.value = state.ranking_round;
+        }
         document.getElementById('op-auto-rank-hint').style.display = state.auto_show_ranking_after_score ? '' : 'none';
 
         // Round controls
@@ -223,7 +218,7 @@
         var btnShowA = document.getElementById('op-btn-show-answer');
         var btnShowR = document.getElementById('op-btn-show-results');
         if (btnShowQ) btnShowQ.disabled = !state.is_active || q === null;
-        if (btnShowA) btnShowA.disabled = !state.is_active || q === null || !answerSlideIdForQuestion(q && q.id);
+        if (btnShowA) btnShowA.disabled = !state.is_active || q === null;
         if (btnShowR) btnShowR.disabled = !state.is_active;
     }
 
@@ -301,14 +296,6 @@
         return ROUND_LABELS[r] || (r.charAt(0).toUpperCase() + r.slice(1));
     }
 
-    // The round currently in play, used to scope the round-ranking view and
-    // the End Round action. Falls back to the last round shown and, finally,
-    // to the first round, so it always resolves to a valid round.
-    function currentRound() {
-        var state = dashboard.state || {};
-        return state.current_round || state.ranking_round || 'easy';
-    }
-
     // ---- Event handlers -------------------------------------------------
 
     document.getElementById('op-btn-start-event').addEventListener('click', function (e) {
@@ -351,9 +338,7 @@
         doAction('show_ranking', {}, e.currentTarget);
     });
     document.getElementById('op-btn-show-round-ranking').addEventListener('click', function (e) {
-        // Round rankings are always scoped to the round currently in play;
-        // "Show Final Rankings" is the cumulative all-rounds view.
-        var round = currentRound();
+        var round = document.getElementById('op-rank-round-select').value;
         doAction('show_round_ranking', { round: round }, e.currentTarget);
     });
     document.getElementById('op-btn-return-to-question').addEventListener('click', function (e) {
@@ -375,13 +360,13 @@
         doAction('start_round', { round: round }, e.currentTarget);
     });
     document.getElementById('op-btn-end-round').addEventListener('click', function (e) {
-        // End the round by showing only that round's results + subtotal (never
-        // the cumulative all-rounds ranking -- "Show Final Rankings" remains
-        // the all-rounds view).
-        doAction('end_round', {}, e.currentTarget).then(function () {
-            var round = currentRound();
-            var resultsRoundSelect = document.getElementById('op-results-round-select');
-            if (resultsRoundSelect) resultsRoundSelect.value = round;
+        // End the round by showing that round's results + subtotal only (not
+        // the cumulative all-rounds ranking), so the operator sees just what
+        // was earned in the round they're closing.
+        var round = document.getElementById('op-round-select').value || dashboard.state.current_round || 'easy';
+        var resultsRoundSelect = document.getElementById('op-results-round-select');
+        if (resultsRoundSelect) resultsRoundSelect.value = round;
+        doAction('show_round_ranking', { round: round }, e.currentTarget).then(function () {
             var panel = document.getElementById('op-results-panel');
             if (panel) { panel.style.display = ''; renderResultsPanel(); }
         });
@@ -410,11 +395,7 @@
     document.getElementById('op-btn-show-answer').addEventListener('click', function (e) {
         var qId = dashboard.state && dashboard.state.current_question ? dashboard.state.current_question.id : null;
         if (!qId) return;
-        var slideId = answerSlideIdForQuestion(qId);
-        if (!slideId) return;
-        var select = document.getElementById('op-answer-select');
-        if (select) select.value = slideId;
-        doAction('show_answer', { slide_id: slideId }, e.currentTarget).then(function () {
+        doAction('show_answer', { slide_id: qId }, e.currentTarget).then(function () {
             // Also show results panel
             var panel = document.getElementById('op-results-panel');
             if (panel) { panel.style.display = ''; renderResultsPanel(); }
@@ -422,7 +403,7 @@
     });
 
     document.getElementById('op-btn-show-results').addEventListener('click', function (e) {
-        var round = currentRound();
+        var round = document.getElementById('op-round-select').value || dashboard.state.current_round || 'easy';
         var resultsRoundSelect = document.getElementById('op-results-round-select');
         if (resultsRoundSelect) resultsRoundSelect.value = round;
         doAction('show_round_ranking', { round: round }, e.currentTarget).then(function () {
