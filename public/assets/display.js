@@ -217,7 +217,10 @@ logo.src = '../' + eventInfo.logo_path;
     function applyState(data) {
         current = data;
         setTimerAnchor(data.timer);
-        setActiveSection(data.display_state);
+
+        // 'answer' reuses the question section — just one image whose src swaps.
+        var sectionName = data.display_state === 'answer' ? 'question' : data.display_state;
+        setActiveSection(sectionName);
 
         // Handle audio config changes
         if (data.audio_config) {
@@ -228,6 +231,8 @@ logo.src = '../' + eventInfo.logo_path;
             renderCover(data.event);
         } else if (data.display_state === 'question' || data.display_state === 'time_up') {
             renderQuestion(data.current_question, data.presentation);
+        } else if (data.display_state === 'answer') {
+            renderAnswer(data.answer_slide);
         } else if (data.display_state === 'ranking') {
             renderBreakdown(
                 document.getElementById('disp-ranking-breakdown'),
@@ -249,8 +254,6 @@ logo.src = '../' + eventInfo.logo_path;
             renderFinal(data.event, data.rankings);
         } else if (data.display_state === 'promotional') {
             renderPromotional(data.promotional_slide);
-        } else if (data.display_state === 'answer') {
-            renderAnswer(data.answer_slide);
         } else if (data.display_state === 'hidden') {
             renderHiddenOverlay();
         }
@@ -331,7 +334,7 @@ logo.src = '../' + eventInfo.logo_path;
 
     function renderAnswer(slide) {
         if (!slide || !slide.image_path) return;
-        var img = document.getElementById('disp-answer-image');
+        var img = document.getElementById('disp-q-image');
         img.src = '../' + slide.image_path;
     }
 

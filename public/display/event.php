@@ -95,12 +95,7 @@ $audioConfig = EventSetting::audioConfig($settings ?? []);
         </div>
     </section>
 
-    <!-- ANSWER -->
-    <section class="disp-state disp-answer" data-state-section="answer">
-        <div class="disp-answer-content">
-            <img id="disp-answer-image" class="disp-answer-image" alt="Answer">
-        </div>
-    </section>
+
 
     <!-- HIDDEN OVERLAY -->
     <div class="disp-hidden-overlay" id="disp-hidden-overlay" style="display:none;">
