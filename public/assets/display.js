@@ -330,26 +330,10 @@ logo.src = '../' + eventInfo.logo_path;
     }
 
     function renderAnswer(slide) {
-    console.log('Answer slide data:', slide);
-
-    var img = document.getElementById('disp-answer-image');
-
-    if (!slide || !slide.image_path) {
-        console.error('Missing answer slide or image_path:', slide);
-        img.removeAttribute('src');
-        return;
+        if (!slide || !slide.image_path) return;
+        var img = document.getElementById('disp-answer-image');
+        img.src = '../' + slide.image_path;
     }
-
-    img.src = '../' + slide.image_path;
-
-    img.onload = function () {
-        console.log('Answer image loaded:', img.src);
-    };
-
-    img.onerror = function () {
-        console.error('Failed to load answer image:', img.src);
-    };
-}
 
     function renderHiddenOverlay() {
         var overlay = document.getElementById('disp-hidden-overlay');
