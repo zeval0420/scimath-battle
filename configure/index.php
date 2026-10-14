@@ -31,6 +31,7 @@ $sections = [
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="../assets/PSHSlogo.png">
   <title>Configure - <?= h($event['name']) ?></title>
   <link rel="stylesheet" href="../src/universal/components.css?v=<?= filemtime(__DIR__ . '/../src/universal/components.css') ?>">
   <link rel="stylesheet" href="../src/universal/HeadFoot.css?v=<?= filemtime(__DIR__ . '/../src/universal/HeadFoot.css') ?>">

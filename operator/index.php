@@ -34,6 +34,7 @@ function card_close() { ?>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="../assets/PSHSlogo.png">
   <title>Operator - <?= h($event['name']) ?></title>
   <link rel="stylesheet" href="../src/universal/components.css?v=<?= filemtime(__DIR__ . '/../src/universal/components.css') ?>">
   <link rel="stylesheet" href="../src/universal/HeadFoot.css?v=<?= filemtime(__DIR__ . '/../src/universal/HeadFoot.css') ?>">
@@ -71,11 +72,14 @@ include __DIR__ . '/../src/universal/header.php';
       <div class="screen-frame" id="screen-frame">
         <iframe id="screen-iframe" title="Live display" src="../display/index.php?event=<?= $eventId ?>&amp;preview=1"></iframe>
       </div>
-      <label class="switch">
-        <input type="checkbox" id="show-live">
-        <span class="switch-track"></span>
-        <span id="show-live-label">Show event on screen (off = cover)</span>
-      </label>
+      <div class="row row-spread">
+        <label class="switch">
+          <input type="checkbox" id="show-live">
+          <span class="switch-track"></span>
+          <span id="show-live-label">Show event on screen (off = banner)</span>
+        </label>
+        <button class="btn" type="button" id="show-banner">Show banner</button>
+      </div>
   <?php card_close(); ?>
 
   <?php card_open('questions', 'Questions'); ?>

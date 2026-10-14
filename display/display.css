@@ -57,9 +57,21 @@
 .score-card.is-correct .score-card-name,
 .score-card.is-wrong .score-card-name { color: rgba(255, 255, 255, 0.85); }
 
-.score-card-rank { min-width: 48px; font-size: 28px; font-weight: 700; color: var(--ink-soft); text-align: center; }
+.score-card-rank {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--navy);
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+}
 .score-card-breakdown.is-wrap { flex-wrap: wrap; justify-content: flex-start; }
-.score-card-part.part-q { background: var(--surface-2); min-width: 64px; padding: 4px 8px; }
+.score-card-part.part-q { background: var(--surface-2); min-width: 64px; padding: 4px 8px; border-radius: 16px; }
 .score-card-part.part-q.is-correct { background: #cfeedb; }
 .score-card-part.part-q.is-wrong { background: #f6d2cd; }
 .score-card-part.part-q .score-card-part-value { font-size: 20px; }

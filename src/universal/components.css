@@ -18,6 +18,8 @@
   --navy: #0e0054;
   --gradient: linear-gradient(to right, #0e0054, #0036af, #0e0054);
   --gradient-btn: linear-gradient(135deg, #0a46c9, #0e0054);
+  --soft: linear-gradient(135deg, #eaf0ff, #d6e3fc);
+  --soft-hover: linear-gradient(135deg, #dce7fb, #c3d5f8);
   --shadow: 0 4px 16px rgba(14, 0, 84, 0.08);
 
   --radius: 12px;
@@ -100,13 +102,13 @@ a {
   transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
-/* Secondary buttons fill with the gradient on hover, like the primary ones */
+/* Secondary buttons tint softly on hover */
 .btn:hover {
-  background: var(--gradient-btn);
-  border-color: transparent;
-  color: #fff;
+  background: var(--soft);
+  border-color: rgba(0, 54, 175, 0.45);
+  color: var(--navy);
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(0, 54, 175, 0.3);
+  box-shadow: 0 4px 10px rgba(0, 54, 175, 0.15);
 }
 
 .btn:active {
@@ -134,22 +136,39 @@ a {
   border-color: rgba(14, 0, 84, 0.22);
 }
 
+/* Primary: soft blue, so a row of them stays easy on the eyes */
 .btn-primary {
-  background: var(--gradient-btn);
-  border-color: transparent;
-  color: var(--accent-ink);
-  box-shadow: 0 4px 12px rgba(0, 54, 175, 0.35);
+  background: var(--soft);
+  border-color: rgba(0, 54, 175, 0.5);
+  color: var(--navy);
+  box-shadow: 0 2px 6px rgba(0, 54, 175, 0.12);
 }
 
 .btn-primary:hover {
-  background: var(--gradient-btn);
-  filter: brightness(1.2);
+  background: var(--soft-hover);
+  border-color: var(--accent);
+  color: var(--navy);
 }
 
 .btn-primary:disabled:hover {
+  background: var(--soft);
+  border-color: rgba(0, 54, 175, 0.5);
+}
+
+/* The one main action on a page (log in, create event, start display) keeps the strong gradient */
+.btn-primary.btn-lg,
+.btn-primary[type="submit"] {
   background: var(--gradient-btn);
-  color: var(--accent-ink);
   border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 54, 175, 0.35);
+}
+
+.btn-primary.btn-lg:hover,
+.btn-primary[type="submit"]:hover {
+  background: var(--gradient-btn);
+  color: #fff;
+  filter: brightness(1.2);
 }
 
 .btn-danger {
@@ -233,22 +252,19 @@ a {
   justify-content: space-between;
   gap: var(--gap);
   padding: 10px var(--pad) 10px 22px;
-  background: var(--gradient);
-  color: #fff;
+  background: linear-gradient(to right, #eaf0ff, #dbe6fc);
+  border-bottom: 1px solid var(--line);
+  color: var(--navy);
 }
 
 .card-head .btn-ghost {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.45);
+  color: var(--navy);
+  border-color: rgba(14, 0, 84, 0.25);
 }
 
 .card-head .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: #fff;
-}
-
-.card-head .btn:focus-visible {
-  outline-color: #fff;
+  background: rgba(255, 255, 255, 0.8);
+  border-color: var(--accent);
 }
 
 .card-title {
@@ -346,7 +362,7 @@ a {
 }
 
 .switch input:checked + .switch-track {
-  background: var(--gradient-btn);
+  background: #3a63c8;
 }
 
 .switch input:checked + .switch-track::after {
@@ -415,10 +431,10 @@ a {
   margin-right: 12px;
   min-height: 38px;
   padding: 0 18px;
-  border: 0;
+  border: 2px solid rgba(0, 54, 175, 0.5);
   border-radius: var(--pill);
-  background: var(--gradient-btn);
-  color: #fff;
+  background: var(--soft);
+  color: var(--navy);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -732,7 +748,9 @@ a.btn {
   padding: 14px 20px;
   background: var(--surface);
   color: var(--ink);
-  border-radius: var(--radius-lg);
+  border-radius: 28px;
+  border-left: 10px solid #9db4e8;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
   flex-shrink: 0;
 }
 
@@ -777,8 +795,8 @@ a.btn {
 .score-card-final {
   min-width: 110px;
   padding: 8px 20px;
-  border-radius: var(--radius);
-  background: var(--accent);
+  border-radius: var(--pill);
+  background: var(--gradient-btn);
   color: var(--accent-ink);
   font-size: 44px;
   font-weight: 700;
@@ -829,3 +847,37 @@ hr {
   border: 0;
   border-top: 1px solid var(--line);
 }
+
+
+/* ---------- Rankings ---------- */
+
+/* Rank badge: a round medal. Top three get gold / silver / bronze (lists are sorted best first). */
+.rank-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.1em;
+  height: 2.1em;
+  padding: 0 0.4em;
+  border-radius: var(--pill);
+  background: var(--accent-soft);
+  color: var(--navy);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank-badge.rank-1 { background: linear-gradient(135deg, #ffe58a, #e8b923); color: #4a3500; }
+.rank-badge.rank-2 { background: linear-gradient(135deg, #f1f3f7, #b9c1ce); color: #2e3644; }
+.rank-badge.rank-3 { background: linear-gradient(135deg, #f3c9a0, #c98440); color: #4a2606; }
+
+.score-list > .score-card:nth-child(1) { border-left-color: #e8b923; }
+.score-list > .score-card:nth-child(2) { border-left-color: #b9c1ce; }
+.score-list > .score-card:nth-child(3) { border-left-color: #c98440; }
+
+.score-list > .score-card:nth-child(1) .score-card-rank { background: linear-gradient(135deg, #ffe58a, #e8b923); color: #4a3500; }
+.score-list > .score-card:nth-child(2) .score-card-rank { background: linear-gradient(135deg, #f1f3f7, #b9c1ce); color: #2e3644; }
+.score-list > .score-card:nth-child(3) .score-card-rank { background: linear-gradient(135deg, #f3c9a0, #c98440); color: #4a2606; }
+
+.score-card-part { border-radius: 18px; }
+.col-rank { text-align: center; }
+.score-card.is-correct { border-left-color: #1c6b3a; }
+.score-card.is-wrong { border-left-color: #7d150f; }

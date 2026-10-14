@@ -213,7 +213,7 @@
         var txt = !s ? '' : (s.r === 'correct' ? s.p : (s.r === 'incorrect' ? '0' : '-'));
         html += '<td class="' + cls + (q.id === currentId ? ' is-current' : '') + '">' + txt + '</td>';
       });
-      html += '<td class="col-total">' + totals[i] + '</td><td class="col-rank">' + ranks[i] + '</td></tr>';
+      html += '<td class="col-total">' + totals[i] + '</td><td class="col-rank"><span class="rank-badge rank-' + Math.min(ranks[i], 4) + '">' + ranks[i] + '</span></td></tr>';
     });
     el.table.innerHTML = html + '</tbody>';
   }

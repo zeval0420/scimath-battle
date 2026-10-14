@@ -134,6 +134,7 @@
 
   function render() {
     $('show-live').checked = !snap.state.hidden;
+    $('show-banner').disabled = snap.state.hidden;
     renderQuestions();
     renderBoards();
     renderPromos();
@@ -154,6 +155,7 @@
 
   // ---------- events ----------
   $('show-live').addEventListener('change', function () { call('set_hidden', { hidden: !this.checked }); });
+  $('show-banner').addEventListener('click', function () { call('set_hidden', { hidden: true }); });
   $('prev-q').addEventListener('click', function () { call('goto_question', { dir: 'prev' }); });
   $('next-q').addEventListener('click', function () { call('goto_question', { dir: 'next' }); });
   $('start-timer').addEventListener('click', function () { call('timer_start'); });
