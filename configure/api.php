@@ -1,6 +1,8 @@
 <?php
 // configure/api.php - JSON endpoint for the configuration page.
 // POST: action, event, payload (JSON string), optional file. Always responds with {state} or {error}.
+require_once __DIR__ . '/../config/auth.php';
+require_login(true);
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 
 header('Content-Type: application/json; charset=utf-8');

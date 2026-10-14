@@ -3,6 +3,8 @@
 //   GET  ?event=ID                      -> {scores: [...]}            (polled by every scorer)
 //   POST {event, question, contestant,
 //         result, scorer}               -> {ok, scores: [...]}        (result: correct|incorrect|no_answer|clear)
+require_once __DIR__ . '/../config/auth.php';
+require_login(true);
 require_once __DIR__ . '/lib.php';
 
 header('Content-Type: application/json; charset=utf-8');

@@ -1,5 +1,7 @@
 <?php
 // admin/index.php - event creation and event cards. No header or footer.
+require_once __DIR__ . '/../config/auth.php';
+require_login();
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 require_once __DIR__ . '/event_create.php';
 

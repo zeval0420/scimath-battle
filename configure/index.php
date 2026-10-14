@@ -1,6 +1,8 @@
 <?php
 // configure/index.php - event configuration. No header or footer.
 // The page shell is static; configure.js loads and renders everything through api.php.
+require_once __DIR__ . '/../config/auth.php';
+require_login();
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 
 $eventId = (int)($_GET['event'] ?? 0);

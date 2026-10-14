@@ -2,6 +2,8 @@
 // scorer/index.php - scorer page. No header or footer.
 // Several scorers can open this page for the same event; scores are saved to the database
 // on every click and every open page polls the server so all tables stay in sync.
+require_once __DIR__ . '/../config/auth.php';
+require_login();
 require_once __DIR__ . '/lib.php';
 
 function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
