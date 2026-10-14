@@ -589,13 +589,40 @@ class CompetitionRuntime
         });
     }
 
-    public static function endRound(int $eventId): array
+    /**
+     * Ends the current round on the public display by showing that round's
+     * breakdown (contestants x that round's questions, plus each team's
+     * subtotal) -- NOT the cumulative all-rounds standings, which is the
+     * separate "final rankings" view (showRanking()).
+     *
+     * The round defaults to whatever round the current question belongs to;
+     * an explicit, valid $round may be supplied to override it (e.g. when a
+     * client already knows the round). It is validated against the canonical
+     * round list here rather than trusting the caller's UI.
+     */
+    public static function endRound(int $eventId, ?string $round = null): array
     {
-        return self::mutate($eventId, function (array $session) {
+        if ($round !== null && !in_array($round, Round::ALL, true)) {
+            throw new CompetitionRuntimeException('Invalid round.');
+        }
+
+        return self::mutate($eventId, function (array $session) use ($round) {
             self::requireActive($session);
 
+            $target = $round;
+            if ($target === null && $session['current_question_id'] !== null) {
+                $question = Question::find((int) $session['current_question_id']);
+                if ($question !== null) {
+                    $target = $question['round'] ?? Round::EASY;
+                }
+            }
+            if ($target === null) {
+                $target = Round::EASY;
+            }
+
             return [
-                'display_state' => DisplayState::RANKING,
+                'display_state' => DisplayState::ROUND_RANKING,
+                'display_round' => $target,
             ];
         });
     }

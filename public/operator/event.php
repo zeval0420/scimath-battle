@@ -165,7 +165,7 @@ require __DIR__ . '/../admin/includes/header.php';
                     <select id="op-answer-select" class="btn">
                         <option value="">Show answer slide...</option>
                         <?php foreach ($questionAnswerSlides as $slide): ?>
-                            <option value="<?= (int) $slide['id'] ?>">Q<?= (int) ($questionNumberById[(int) $slide['question_id']] ?? 0) ?> &mdash; answer slide</option>
+                            <option value="<?= (int) $slide['id'] ?>" data-question-id="<?= (int) $slide['question_id'] ?>">Q<?= (int) ($questionNumberById[(int) $slide['question_id']] ?? 0) ?> &mdash; answer slide</option>
                         <?php endforeach; ?>
                     </select>
                     <?php if (!$questionAnswerSlides): ?>
@@ -191,14 +191,10 @@ require __DIR__ . '/../admin/includes/header.php';
             <div class="op-panel" data-op-component="ranking-control">
                 <h2>Ranking control</h2>
                 <div class="op-nav-buttons">
-                    <select id="op-rank-round-select" class="btn">
-                        <?php foreach (Round::ALL as $r): ?>
-                            <option value="<?= $r ?>"><?= htmlspecialchars(Round::label($r)) ?> Round</option>
-                        <?php endforeach; ?>
-                    </select>
                     <button type="button" class="btn btn-primary" id="op-btn-show-round-ranking">Show Round Rankings</button>
                     <button type="button" class="btn btn-primary" id="op-btn-show-ranking">Show Final Rankings</button>
                 </div>
+                <p class="hint" style="margin-top:10px;">Round Rankings shows the current round's breakdown; Final Rankings is the cumulative, all-rounds standings.</p>
                 <div class="op-nav-buttons" style="margin-top:10px;">
                     <button type="button" class="btn" id="op-btn-return-to-question">Return to question</button>
                     <button type="button" class="btn" id="op-btn-return-to-cover">Return to cover</button>
