@@ -121,7 +121,7 @@
   }
   function syncAudio() {
     if (PREVIEW || !audioReady || !snap) return;
-    var au = snap.audio, onCover = snap.state.hidden;
+    var au = snap.audio, onCover = snap.state.hidden || snap.state.banner;
     setSrc(aBanner, au.banner); setSrc(aGame, au.game); setSrc(aTimer, au.timer);
     aBanner.volume = au.banner_volume / 100; aGame.volume = au.game_volume / 100;
     play(aBanner, onCover);

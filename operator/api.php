@@ -77,6 +77,7 @@ function default_state(int $eid): array
     $first = val('SELECT id FROM scimath_questions WHERE event_id = ? ORDER BY display_order, id LIMIT 1', [$eid]);
     return [
         'hidden' => true,            // true = show the cover (default); false = show the live content
+        'banner' => false,           // true = force the cover even while the event is switched on
         'base' => 'question',        // question | answer | boards_up
         'overlay' => null,           // null | {type:'promo',id} | {type:'results',kind,question_id,round}
         'question_id' => $first ? (int)$first : null,
@@ -135,18 +136,24 @@ function result_data(int $eid, array $overlay, array $qs): array
                   WHERE event_id = ? AND is_active = 1 ORDER BY display_order, id', [$eid]);
     $entries = rows('SELECT e.contestant_id, e.question_id, e.result, e.points_awarded, q.round, q.question_number
                      FROM scimath_score_entries e JOIN scimath_questions q ON q.id = e.question_id
-                     WHERE e.event_id = ?', [$eid]);
+                     WHERE e.event_id = ? ORDER BY e.id', [$eid]);
     $kind = $overlay['kind'] ?? 'question';
     $label = fn($c) => $c['acronym'] !== null && $c['acronym'] !== '' ? $c['acronym'] : $c['name'];
 
     if ($kind === 'question') {
         $q = find_question($qs, (int)($overlay['question_id'] ?? 0));
-        $by = [];
-        foreach ($entries as $e) if ((int)$e['question_id'] === (int)($q['id'] ?? 0)) $by[$e['contestant_id']] = $e;
+        // Teams appear in the order their answers were scored; unscored teams follow in display order.
+        $byId = [];
+        foreach ($cons as $c) $byId[(int)$c['id']] = $c;
         $list = [];
-        foreach ($cons as $c) {
-            $e = $by[$c['id']] ?? null;
-            $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => $e['result'] ?? 'unscored', 'points' => $e ? (int)$e['points_awarded'] : null];
+        foreach ($entries as $e) {
+            $cid = (int)$e['contestant_id'];
+            if ((int)$e['question_id'] !== (int)($q['id'] ?? 0) || !isset($byId[$cid])) continue;
+            $c = $byId[$cid]; unset($byId[$cid]);
+            $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => $e['result'], 'points' => (int)$e['points_awarded']];
+        }
+        foreach ($byId as $c) {
+            $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => 'unscored', 'points' => null];
         }
         return ['kind' => 'question', 'title' => $q ? 'Question ' . $q['number'] . ' Results' : 'Question Results', 'rows' => $list];
     }
@@ -203,7 +210,7 @@ function snapshot(int $eid, array $s, int $now, bool $operator): array
 
     // What the display shows.
     $screen = ['kind' => 'cover', 'src' => $ev['cover_image_path'], 'text' => $ev['name']];
-    if (!$s['hidden']) {
+    if (!$s['hidden'] && !$s['banner']) {
         $ov = $s['overlay'];
         if ($ov && $ov['type'] === 'promo' && ($p = $promoPath((int)$ov['id']))) {
             $screen = ['kind' => 'image', 'src' => $p];
@@ -224,7 +231,7 @@ function snapshot(int $eid, array $s, int $now, bool $operator): array
     $snap = [
         'now' => $now,
         'event' => $ev,
-        'state' => ['hidden' => $s['hidden'], 'base' => $s['base'], 'overlay' => $s['overlay'], 'boards_up' => $s['boards_up'],
+        'state' => ['hidden' => $s['hidden'], 'banner' => $s['banner'], 'base' => $s['base'], 'overlay' => $s['overlay'], 'boards_up' => $s['boards_up'],
                     'scroll' => $s['scroll'], 'scroll_by' => $s['scroll_by']],
         'screen' => $screen,
         'question' => $q,
@@ -234,7 +241,7 @@ function snapshot(int $eid, array $s, int $now, bool $operator): array
             'running' => $t['running'], 'ended' => $t['ended'], 'duration' => $t['duration'], 'run_id' => $t['run_id'],
             'remaining_ms' => timer_remaining_ms($t, $now),
             // The countdown badge only makes sense while the question slide is up.
-            'visible' => !$s['hidden'] && !$s['overlay'] && $s['base'] === 'question' && $t['duration'] > 0 && ($t['running'] || $t['remaining'] > 0),
+            'visible' => !$s['hidden'] && !$s['banner'] && !$s['overlay'] && $s['base'] === 'question' && $t['duration'] > 0 && ($t['running'] || $t['remaining'] > 0),
         ],
         'audio' => [
             'timer' => $st['timer_audio_path'] ?: 'assets/placeholder_timer_audio.mp3',
@@ -276,10 +283,15 @@ try {
             break;
 
         case 'set_hidden': // true = back to the cover; false = start/resume the event
-            $s['hidden'] = !empty($p['hidden']);
+            $s['hidden'] = !empty($p['hidden']); $s['banner'] = false;
             if (!$s['hidden'] && val('SELECT status FROM scimath_events WHERE id = ?', [$eid]) !== 'active') {
                 run("UPDATE scimath_events SET status = 'active' WHERE id = ? AND status IN ('draft','ready')", [$eid]);
             }
+            $changed = true;
+            break;
+
+        case 'set_banner': // cover on top of the live content; the event toggle is left as it is
+            $s['banner'] = !empty($p['banner']);
             $changed = true;
             break;
 
@@ -296,7 +308,7 @@ try {
 
         case 'show': // question | answer | boards_up
             if (!in_array($p['base'] ?? '', BASES, true)) throw new UserError('Invalid screen.');
-            $s['base'] = $p['base']; $s['overlay'] = null; $s['hidden'] = false;
+            $s['base'] = $p['base']; $s['overlay'] = null; $s['hidden'] = false; $s['banner'] = false;
             $changed = true;
             break;
 
@@ -304,7 +316,7 @@ try {
             if (!val('SELECT id FROM scimath_promotional_slides WHERE id = ? AND event_id = ?', [(int)($p['id'] ?? 0), $eid])) {
                 throw new UserError('Slide not found.');
             }
-            $s['overlay'] = ['type' => 'promo', 'id' => (int)$p['id']]; $s['hidden'] = false;
+            $s['overlay'] = ['type' => 'promo', 'id' => (int)$p['id']]; $s['hidden'] = false; $s['banner'] = false;
             $changed = true;
             break;
 
@@ -313,7 +325,7 @@ try {
             if (!in_array($kind, ['question', 'round', 'final'], true)) throw new UserError('Invalid results type.');
             $round = in_array($p['round'] ?? '', ROUNDS, true) ? $p['round'] : ($cur['round'] ?? 'easy');
             $s['overlay'] = ['type' => 'results', 'kind' => $kind, 'question_id' => $s['question_id'], 'round' => $round];
-            $s['hidden'] = false; $s['scroll'] = 0; $s['scroll_by'] = 'operator-reset';
+            $s['hidden'] = false; $s['banner'] = false; $s['scroll'] = 0; $s['scroll_by'] = 'operator-reset';
             $changed = true;
             break;
 
@@ -345,7 +357,7 @@ try {
             $dur = $cur['eff_time'];
             $s['timer'] = ['duration' => $dur, 'remaining' => $dur, 'running' => true, 'end_ms' => $now + $dur * 1000,
                            'ended' => false, 'run_id' => ($s['timer']['run_id'] ?? 0) + 1];
-            $s['base'] = 'question'; $s['overlay'] = null; $s['hidden'] = false;
+            $s['base'] = 'question'; $s['overlay'] = null; $s['hidden'] = false; $s['banner'] = false;
             $changed = true;
             break;
 

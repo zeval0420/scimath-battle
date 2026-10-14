@@ -124,7 +124,7 @@
   function renderPromos() {
     var ov = snap.state.overlay;
     $('promo-grid').innerHTML = snap.promos.length ? snap.promos.map(function (p) {
-      var live = !snap.state.hidden && ov && ov.type === 'promo' && Number(ov.id) === Number(p.id);
+      var live = !snap.state.hidden && !snap.state.banner && ov && ov.type === 'promo' && Number(ov.id) === Number(p.id);
       return '<div class="stack promo-item' + (live ? ' is-live' : '') + '" style="gap:8px">' +
         '<div class="slide-thumb"><img loading="lazy" src="' + url(p.path) + '" alt=""></div>' +
         '<span class="hint">' + esc(p.title) + '</span>' +
@@ -158,7 +158,7 @@
 
   function render() {
     $('show-live').checked = !snap.state.hidden;
-    $('show-banner').disabled = snap.state.hidden;
+    $('show-banner').textContent = snap.state.banner ? 'Hide banner' : 'Show banner';
     renderQuestions();
     renderClincher();
     renderBoards();
@@ -166,7 +166,7 @@
     renderResultsControls();
     renderTimer();
     document.querySelectorAll('[data-show]').forEach(function (b) {
-      var active = !snap.state.hidden && !snap.state.overlay && snap.state.base === b.dataset.show;
+      var active = !snap.state.hidden && !snap.state.banner && !snap.state.overlay && snap.state.base === b.dataset.show;
       b.classList.toggle('btn-primary', active && b.id !== 'start-timer');
     });
   }
@@ -180,7 +180,7 @@
 
   // ---------- events ----------
   $('show-live').addEventListener('change', function () { call('set_hidden', { hidden: !this.checked }); });
-  $('show-banner').addEventListener('click', function () { call('set_hidden', { hidden: true }); });
+  $('show-banner').addEventListener('click', function () { call('set_banner', { banner: !snap.state.banner }); });
   $('prev-q').addEventListener('click', function () { call('goto_question', { dir: 'prev' }); });
   $('next-q').addEventListener('click', function () { call('goto_question', { dir: 'next' }); });
   $('start-timer').addEventListener('click', function () { call('timer_start'); });
