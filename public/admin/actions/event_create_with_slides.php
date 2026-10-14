@@ -60,6 +60,7 @@ try {
 
 function processSlides(int $eventId): array
 {
+    error_log("processSlides: FILES keys: " . print_r(array_keys($_FILES), true));
     $createdQuestions = 0;
     $createdPromo = 0;
     $createdAnswers = 0;
@@ -68,6 +69,7 @@ function processSlides(int $eventId): array
 
     // Handle ZIP upload
     if (isset($_FILES['upload']) && $_FILES['upload']['error'] === UPLOAD_ERR_OK) {
+        error_log("processSlides: Processing ZIP upload");
         $result = processZipUpload($eventId, $_FILES['upload']);
         $createdQuestions += $result['questions'];
         $createdPromo += $result['promo'];
@@ -78,6 +80,7 @@ function processSlides(int $eventId): array
 
     // Handle multi-file upload
     if (isset($_FILES['files']) && is_array($_FILES['files']['name'])) {
+        error_log("processSlides: Processing multi-file upload");
         $result = processMultiUpload($eventId, $_FILES['files']);
         $createdQuestions += $result['questions'];
         $createdPromo += $result['promo'];
@@ -97,11 +100,14 @@ function processSlides(int $eventId): array
 
 function processZipUpload(int $eventId, array $file): array
 {
+    error_log("processZipUpload: Received ZIP file: " . $file['name'] . ", size: " . $file['size'] . ", error: " . $file['error']);
     $zipPath = $file['tmp_name'];
     $zip = new ZipArchive();
     if ($zip->open($zipPath) !== true) {
+        error_log("processZipUpload: Failed to open ZIP file");
         return ['questions' => 0, 'promo' => 0, 'answers' => 0, 'banner' => false, 'errors' => ['Could not open ZIP file']];
     }
+    error_log("processZipUpload: ZIP opened successfully, numFiles: " . $zip->numFiles);
 
     $slidesData = [];
     for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -125,9 +131,11 @@ function processZipUpload(int $eventId, array $file): array
                 'tempPath' => $tmpName,
             ];
         } catch (RuntimeException $e) {
+            error_log("processZipUpload: Validation failed for $name: " . $e->getMessage());
             @unlink($tmpName);
         }
     }
+    error_log("processZipUpload: Total valid images extracted: " . count($slidesData));
     $zip->close();
     @unlink($zipPath);
 
@@ -142,7 +150,9 @@ function processMultiUpload(int $eventId, array $files): array
     $skippedCount = 0;
     $maxFiles = (int) ini_get('max_file_uploads');
     
+    error_log("processMultiUpload: Received $count files, max_file_uploads=$maxFiles");
     for ($i = 0; $i < $count; $i++) {
+        error_log("processMultiUpload: File $i - name=" . basename($files['name'][$i]) . ", error=" . $files['error'][$i] . ", tmp_name=" . $files['tmp_name'][$i]);
         if ($files['error'][$i] !== UPLOAD_ERR_OK) {
             if ($files['error'][$i] === UPLOAD_ERR_NO_FILE) {
                 // This can happen when max_file_uploads limit is reached
@@ -163,7 +173,7 @@ function processMultiUpload(int $eventId, array $files): array
             ];
             $uploadedCount++;
         } catch (RuntimeException $e) {
-            // Skip invalid files
+            error_log("processMultiUpload: Validation failed for $originalName: " . $e->getMessage());
         }
     }
     
