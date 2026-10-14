@@ -16,7 +16,7 @@ $events = Event::allOrderedByDate();
     <div class="hero-inner">
         <div class="hero-institution">
             <div class="hero-logo">
-                <img src="../../img/logo.png" alt="PSHS Logo" width="44" height="44">
+                <img src="../../scilab/img/logo.png" alt="PSHS Logo" width="44" height="44">
             </div>
             <div class="hero-inst-text">
                 <div class="line1">Department of Science and Technology</div>

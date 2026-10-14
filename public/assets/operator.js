@@ -360,7 +360,16 @@
         doAction('start_round', { round: round }, e.currentTarget);
     });
     document.getElementById('op-btn-end-round').addEventListener('click', function (e) {
-        doAction('end_round', {}, e.currentTarget);
+        // End the round by showing that round's results + subtotal only (not
+        // the cumulative all-rounds ranking), so the operator sees just what
+        // was earned in the round they're closing.
+        var round = document.getElementById('op-round-select').value || dashboard.state.current_round || 'easy';
+        var resultsRoundSelect = document.getElementById('op-results-round-select');
+        if (resultsRoundSelect) resultsRoundSelect.value = round;
+        doAction('show_round_ranking', { round: round }, e.currentTarget).then(function () {
+            var panel = document.getElementById('op-results-panel');
+            if (panel) { panel.style.display = ''; renderResultsPanel(); }
+        });
     });
 
     // Promotional slide
@@ -395,6 +404,8 @@
 
     document.getElementById('op-btn-show-results').addEventListener('click', function (e) {
         var round = document.getElementById('op-round-select').value || dashboard.state.current_round || 'easy';
+        var resultsRoundSelect = document.getElementById('op-results-round-select');
+        if (resultsRoundSelect) resultsRoundSelect.value = round;
         doAction('show_round_ranking', { round: round }, e.currentTarget).then(function () {
             var panel = document.getElementById('op-results-panel');
             if (panel) { panel.style.display = ''; renderResultsPanel(); }
@@ -519,7 +530,7 @@
             var contestants = report.contestants || [];
             var cells = report.cells || {};
 
-            var roundQuestions = questions.filter(function (q) { return q.round === round; });
+            var roundQuestions = questions.filter(function (q) { return (q.round || 'easy') === round; });
             if (roundQuestions.length === 0) {
                 wrap.innerHTML = '<p class="muted">No ' + roundLabel(round) + ' questions configured.</p>';
                 return;
@@ -527,16 +538,17 @@
 
             var headTop = '<th class="name-col" rowspan="2">Team</th>';
             headTop += '<th class="round-group" colspan="' + roundQuestions.length + '">' + roundLabel(round) + '</th>';
-            headTop += '<th class="total-col" rowspan="2">Total</th>';
+            headTop += '<th class="total-col" rowspan="2">Round Total</th>';
 
             var headBottom = '';
             roundQuestions.forEach(function (q) {
                 var isHighlight = lastScoredQuestionId && String(q.id) === String(lastScoredQuestionId);
-                headBottom += '<th class="' + (isHighlight ? 'highlight-col' : '') + '">Q' + q.number + '</th>';
+                headBottom += '<th class="' + (isHighlight ? 'highlight-col' : '') + '">Q' + q.question_number + '</th>';
             });
 
             var body = contestants.map(function (c) {
                 var cellsHtml = '<td class="name-col">' + escapeHtml(c.name) + '</td>';
+                var roundTotal = 0;
                 roundQuestions.forEach(function (q) {
                     var entry = cells[c.id] && cells[c.id][q.id];
                     var isHighlight = lastScoredQuestionId && String(q.id) === String(lastScoredQuestionId);
@@ -546,9 +558,10 @@
                         else if (entry.result === 'incorrect' || entry.result === 'no_answer') resultClass = 'highlight-' + entry.result;
                     }
                     var val = entry ? entry.points_awarded : '—';
+                    if (entry) roundTotal += parseInt(entry.points_awarded, 10) || 0;
                     cellsHtml += '<td class="' + (isHighlight ? 'highlight-col ' : '') + resultClass + '">' + val + '</td>';
                 });
-                cellsHtml += '<td class="total-col">' + c.total + '</td>';
+                cellsHtml += '<td class="total-col">' + roundTotal + '</td>';
                 return '<tr>' + cellsHtml + '</tr>';
             }).join('');
 
