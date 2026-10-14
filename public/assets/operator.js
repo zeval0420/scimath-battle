@@ -810,23 +810,25 @@
 
 
 
-    document.getElementById('op-btn-show-answer').addEventListener('click', function (e) {
+    
+document.getElementById('op-btn-show-answer').addEventListener('click', function (e) {
+    var q = dashboard.state && dashboard.state.current_question;
+    if (!q) return;
 
-        var qId = dashboard.state && dashboard.state.current_question ? dashboard.state.current_question.id : null;
+    var answer = findAnswerSlideByQuestionId(q.id);
+    if (!answer) {
+        alert('No answer slide configured for this question.');
+        return;
+    }
 
-        if (!qId) return;
-
-        doAction('show_answer', { slide_id: qId }, e.currentTarget).then(function () {
-
-            // Also show results panel
-
-            var panel = document.getElementById('op-results-panel');
-
-            if (panel) { panel.style.display = ''; renderResultsPanel(); }
-
-        });
-
+    doAction('show_answer', { slide_id: answer.id }, e.currentTarget).then(function () {
+        var panel = document.getElementById('op-results-panel');
+        if (panel) {
+            panel.style.display = '';
+            renderResultsPanel();
+        }
     });
+});
 
 
 
