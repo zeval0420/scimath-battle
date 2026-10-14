@@ -684,6 +684,16 @@ require __DIR__ . '/includes/header.php';
                 </label>
             </div>
             <p id="slide-file-info" class="hint" style="margin-top:10px;"></p>
+            <div id="slide-file-status" style="margin-top:16px;padding:12px;background:var(--input-bg);border-radius:8px;display:none;">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:200px;">
+                        <strong id="slide-status-filename" style="display:block;font-size:0.9rem;"></strong>
+                        <span id="slide-status-size" style="font-size:0.75rem;color:var(--text-secondary);"></span>
+                    </div>
+                    <span id="slide-status-badge" class="badge badge-draft" style="white-space:nowrap;">Selected</span>
+                    <button type="button" id="slide-clear-file" class="btn btn-small" style="margin-left:8px;">Remove</button>
+                </div>
+            </div>
             <div id="slide-upload-progress" style="display:none;margin-top:10px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
                     <span id="slide-progress-text" class="hint">Uploading...</span>
