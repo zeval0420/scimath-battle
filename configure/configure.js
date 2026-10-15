@@ -200,7 +200,49 @@
       '<form class="row-form" id="c-add-form">' +
       '<div class="field"><label class="field-label" for="c-acr">Acronym</label><input class="input" id="c-acr" maxlength="20"></div>' +
       '<div class="field"><label class="field-label" for="c-name">Name</label><input class="input" id="c-name" maxlength="150" required></div>' +
-      '<button class="btn btn-primary" type="submit">Add contestant</button></form>';
+      '<button class="btn btn-primary" type="submit">Add contestant</button></form>' +
+      '<div class="field"><label class="field-label" for="c-csv">Or import from a CSV file</label>' +
+      '<input type="file" id="c-csv" accept=".csv,text/csv,text/plain" data-act="c-csv">' +
+      '<span class="hint">One school per row: <b>acronym,name</b> (or just the name). A header row with "acronym" and "name" columns also works. Schools already listed are skipped.</span></div>';
+  }
+
+  // Minimal CSV parser (quoted fields, "" escapes, CRLF, BOM).
+  function parseCsv(text) {
+    text = text.replace(/^﻿/, '');
+    var rows = [], row = [], cell = '', q = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (q) {
+        if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+        else if (ch === '"') q = false;
+        else cell += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ',' || ch === ';' || ch === '\t') { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); cell = '';
+        rows.push(row); row = [];
+      } else cell += ch;
+    }
+    row.push(cell);
+    rows.push(row);
+    return rows.filter(function (r) { return r.some(function (c) { return c.trim() !== ''; }); });
+  }
+
+  function csvToContestants(text) {
+    var rows = parseCsv(text), nameCol = -1, acrCol = -1;
+    if (rows.length) {
+      var head = rows[0].map(function (c) { return c.trim().toLowerCase(); });
+      nameCol = head.findIndex(function (c) { return /^(name|school|school name|team|team name|contestant)$/.test(c); });
+      acrCol = head.findIndex(function (c) { return /^(acronym|code|abbreviation|short name)$/.test(c); });
+      if (nameCol !== -1 || acrCol !== -1) rows.shift(); else { nameCol = -1; acrCol = -1; }
+    }
+    return rows.map(function (r) {
+      if (nameCol === -1 && acrCol === -1) { // no header: "acronym,name" or just "name"
+        return r.length > 1 ? { acronym: r[0].trim(), name: r[1].trim() } : { acronym: '', name: r[0].trim() };
+      }
+      return { acronym: acrCol === -1 ? '' : (r[acrCol] || '').trim(), name: nameCol === -1 ? '' : (r[nameCol] || '').trim() };
+    });
   }
 
   function render() {
@@ -220,6 +262,17 @@
     var el = e.target, act = el.dataset.act;
     if (!act) return;
 
+    if (act === 'c-csv') {
+      var f = el.files[0];
+      if (!f) return;
+      var before = state.contestants.length;
+      f.text().then(function (text) {
+        return call('import_contestants', { rows: csvToContestants(text) });
+      }).then(function (ok) {
+        if (ok) setStatus('Imported ' + (state.contestants.length - before) + ' school(s).');
+      });
+      return;
+    }
     if (act === 'upload') {
       if (el.files[0]) call('upload_asset', { key: el.dataset.key }, { file: el.files[0] });
     } else if (act === 'volume') {
@@ -288,7 +341,11 @@
     } else if (act === 'c-del') {
       var row = tgt.closest('[data-cid]');
       var name = row.querySelector('[data-prop=name]').value;
-      if (confirm('Delete contestant "' + name + '"?')) call('delete_contestant', { id: Number(row.dataset.cid) });
+      var cid = Number(row.dataset.cid);
+      var info = state.contestants.filter(function (c) { return Number(c.id) === cid; })[0];
+      var scored = info ? Number(info.score_count) : 0;
+      var msg = 'Delete contestant "' + name + '"?' + (scored ? '\n\nThey have ' + scored + ' recorded score(s), which will be deleted too.' : '');
+      if (confirm(msg)) call('delete_contestant', { id: cid, force: scored > 0 });
     }
   });
 

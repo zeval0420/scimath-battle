@@ -96,7 +96,9 @@ function load_state(int $eid): array
         'slides' => $slides,
         'questions' => rows('SELECT id, question_number AS number, round, image_path, answer_image_path, points, time_seconds
                              FROM scimath_questions WHERE event_id = ? ORDER BY display_order, id', [$eid]),
-        'contestants' => rows('SELECT id, name, acronym FROM scimath_contestants WHERE event_id = ? ORDER BY display_order, id', [$eid]),
+        'contestants' => rows('SELECT c.id, c.name, c.acronym,
+                               (SELECT COUNT(*) FROM scimath_score_entries s WHERE s.contestant_id = c.id) AS score_count
+                               FROM scimath_contestants c WHERE c.event_id = ? ORDER BY c.display_order, c.id', [$eid]),
     ];
 }
 
@@ -281,10 +283,30 @@ try {
 
         case 'delete_contestant':
             $id = (int)($p['id'] ?? 0);
-            if (val('SELECT COUNT(*) FROM scimath_score_entries WHERE contestant_id = ?', [$id]) > 0) {
-                throw new UserError('This contestant already has scores and cannot be deleted.');
+            if (!val('SELECT id FROM scimath_contestants WHERE id = ? AND event_id = ?', [$id, $eid])) throw new UserError('Contestant not found.');
+            if (empty($p['force']) && val('SELECT COUNT(*) FROM scimath_score_entries WHERE contestant_id = ?', [$id]) > 0) {
+                throw new UserError('This contestant already has scores. Confirm to delete them together with the contestant.');
             }
-            run('DELETE FROM scimath_contestants WHERE id = ? AND event_id = ?', [$id, $eid]);
+            run('DELETE FROM scimath_contestants WHERE id = ? AND event_id = ?', [$id, $eid]); // scores and clincher picks cascade
+            break;
+
+        case 'import_contestants': // rows parsed from a CSV file in the browser: [{acronym, name}, ...]
+            $in = $p['rows'] ?? [];
+            if (!is_array($in) || !$in) throw new UserError('The CSV file has no schools in it.');
+            if (count($in) > 500) throw new UserError('Too many rows (max 500 at a time).');
+            $have = [];
+            foreach (rows('SELECT name FROM scimath_contestants WHERE event_id = ?', [$eid]) as $r) $have[mb_strtolower($r['name'])] = true;
+            $o = (int)val('SELECT COALESCE(MAX(display_order), 0) FROM scimath_contestants WHERE event_id = ?', [$eid]);
+            foreach ($in as $i => $r) {
+                $name = trim((string)($r['name'] ?? '')); $acr = trim((string)($r['acronym'] ?? ''));
+                $line = $i + 1;
+                if ($name === '' || mb_strlen($name) > 150) throw new UserError("Row $line: a name is required (max 150 characters).");
+                if (mb_strlen($acr) > 20) throw new UserError("Row $line: acronym is too long (max 20 characters).");
+                if (isset($have[mb_strtolower($name)])) continue; // already added
+                $have[mb_strtolower($name)] = true;
+                run('INSERT INTO scimath_contestants (event_id, name, acronym, display_order) VALUES (?, ?, ?, ?)',
+                    [$eid, $name, $acr === '' ? null : $acr, ++$o]);
+            }
             break;
 
         default:

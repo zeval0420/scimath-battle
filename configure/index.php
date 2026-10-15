@@ -71,6 +71,6 @@ include __DIR__ . '/../src/universal/header.php';
 
 </main>
 <?php include __DIR__ . '/../src/universal/footer.php'; ?>
-<script src="configure.js"></script>
+<script src="configure.js?v=<?= filemtime(__DIR__ . '/configure.js') ?>"></script>
 </body>
 </html>
