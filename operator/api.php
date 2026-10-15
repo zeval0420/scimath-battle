@@ -4,6 +4,7 @@
 // The live screen state is one JSON row per event in scimath_screen_state (created on first use).
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 require_once __DIR__ . '/../config/clincher.php';
+require_once __DIR__ . '/../config/schema.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -83,6 +84,7 @@ function default_state(int $eid): array
         'hidden' => true,            // true = show the cover (default); false = show the live content
         'banner' => false,           // true = force the cover even while the event is switched on
         'base' => 'question',        // question | answer | boards_up
+        'answer_run' => 0,           // +1 every time Show answer is clicked (triggers the chime once)
         'overlay' => null,           // null | {type:'promo',id} | {type:'results',kind,question_id,round}
         'question_id' => $first ? (int)$first : null,
         'boards_up' => ['type' => 'text', 'text' => 'Boards Up', 'promo_id' => null],
@@ -254,7 +256,7 @@ function result_data(int $eid, array $overlay, array $qs): array
 function snapshot(int $eid, array $s, int $now, bool $operator): array
 {
     $ev = one('SELECT id, name, subtitle, logo_path, cover_image_path FROM scimath_events WHERE id = ?', [$eid]);
-    $st = one('SELECT timer_audio_path, banner_audio_path, game_audio_path, banner_audio_volume, game_audio_volume
+    $st = one('SELECT timer_audio_path, banner_audio_path, game_audio_path, correct_audio_path, banner_audio_volume, game_audio_volume
                FROM scimath_event_settings WHERE event_id = ?', [$eid]);
     $qs = questions($eid);
     $q = find_question($qs, $s['question_id']);
@@ -287,7 +289,7 @@ function snapshot(int $eid, array $s, int $now, bool $operator): array
     $snap = [
         'now' => $now,
         'event' => $ev,
-        'state' => ['hidden' => $s['hidden'], 'banner' => $s['banner'], 'base' => $s['base'], 'overlay' => $s['overlay'], 'boards_up' => $s['boards_up'],
+        'state' => ['answer_run' => $s['answer_run'] ?? 0, 'hidden' => $s['hidden'], 'banner' => $s['banner'], 'base' => $s['base'], 'overlay' => $s['overlay'], 'boards_up' => $s['boards_up'],
                     'scroll' => $s['scroll'], 'scroll_by' => $s['scroll_by']],
         'screen' => $screen,
         'question' => $q,
@@ -301,6 +303,7 @@ function snapshot(int $eid, array $s, int $now, bool $operator): array
         ],
         'audio' => [
             'timer' => $st['timer_audio_path'] ?: 'assets/placeholder_timer_audio.mp3',
+            'correct' => $st['correct_audio_path'],
             'banner' => $st['banner_audio_path'], 'banner_volume' => (int)$st['banner_audio_volume'],
             'game' => $st['game_audio_path'], 'game_volume' => (int)$st['game_audio_volume'],
         ],
@@ -327,6 +330,7 @@ try {
     if (!val('SELECT id FROM scimath_events WHERE id = ?', [$eid])) throw new UserError('Event not found.');
 
     ensure_clincher_table($conn);
+    ensure_correct_audio_column($conn);
     $conn->begin_transaction();
     $s = lock_state($eid);
     $now = now_ms();
@@ -378,6 +382,7 @@ try {
         case 'show': // question | answer | boards_up
             if (!in_array($p['base'] ?? '', BASES, true)) throw new UserError('Invalid screen.');
             $s['base'] = $p['base']; $s['overlay'] = null; $s['hidden'] = false; $s['banner'] = false;
+            if ($p['base'] === 'answer') $s['answer_run'] = ($s['answer_run'] ?? 0) + 1;
             $changed = true;
             break;
 

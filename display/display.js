@@ -155,6 +155,8 @@
   var aBanner = document.getElementById('audio-banner');
   var aGame = document.getElementById('audio-game');
   var aTimer = document.getElementById('audio-timer');
+  var aCorrect = document.getElementById('audio-correct');
+  var answerRun = null; // last Show-answer click already handled
 
   function setSrc(a, path) {
     var want = path ? url(path) : '';
@@ -189,6 +191,14 @@
     play(aBanner, onCover);
     play(aGame, !onCover);
     syncTimerAudio();
+    // Correct-answer chime: once per Show answer click (not looped, not replayed on reload).
+    setSrc(aCorrect, au.correct);
+    var run = snap.state.answer_run || 0;
+    if (answerRun === null) answerRun = run;
+    else if (run !== answerRun) {
+      answerRun = run;
+      if (snap.state.base === 'answer' && !onCover && aCorrect.getAttribute('src')) { aCorrect.currentTime = 0; aCorrect.play().catch(function () {}); }
+    }
   }
 
   // The timer sound plays only for the last 5 seconds of a running countdown.

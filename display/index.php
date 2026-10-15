@@ -44,6 +44,7 @@ $preview = !empty($_GET['preview']);
   <audio id="audio-banner" loop></audio>
   <audio id="audio-game" loop></audio>
   <audio id="audio-timer"></audio>
+  <audio id="audio-correct"></audio>
   <?php endif; ?>
 
 <script src="display.js?v=<?= filemtime(__DIR__ . '/display.js') ?>"></script>

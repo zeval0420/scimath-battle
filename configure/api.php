@@ -4,6 +4,7 @@
 require_once __DIR__ . '/../config/auth.php';
 require_login(true);
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
+require_once __DIR__ . '/../config/schema.php';
 
 header('Content-Type: application/json; charset=utf-8');
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -20,6 +21,7 @@ const ASSETS = [
     'timer_audio'  => ['scimath_event_settings', 'event_id', 'timer_audio_path', 'audio'],
     'banner_audio' => ['scimath_event_settings', 'event_id', 'banner_audio_path', 'audio'],
     'game_audio'   => ['scimath_event_settings', 'event_id', 'game_audio_path', 'audio'],
+    'correct_audio' => ['scimath_event_settings', 'event_id', 'correct_audio_path', 'audio'],
 ];
 
 class UserError extends RuntimeException {}
@@ -91,6 +93,7 @@ function load_state(int $eid): array
             'default_timer_audio' => DEFAULT_TIMER_AUDIO,
             'banner_audio_path' => $st['banner_audio_path'],
             'game_audio_path'   => $st['game_audio_path'],
+            'correct_audio_path' => $st['correct_audio_path'] ?? null,
             'banner_audio_volume' => (int)$st['banner_audio_volume'],
             'game_audio_volume'   => (int)$st['game_audio_volume'],
             'rounds' => $rounds,
@@ -238,6 +241,7 @@ try {
     if (!val('SELECT id FROM scimath_events WHERE id = ?', [$eid])) throw new UserError('Event not found.');
     run('INSERT IGNORE INTO scimath_event_settings (event_id) VALUES (?)', [$eid]);
 
+    ensure_correct_audio_column($conn);
     // The acronym column used to be VARCHAR(20); widen it once (DDL commits, so do it before the transaction).
     $len = (int)val("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS
                      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'scimath_contestants' AND COLUMN_NAME = 'acronym'");

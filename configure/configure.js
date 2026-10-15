@@ -97,6 +97,7 @@
       '</div>';
     $('body-audio').innerHTML = '<div class="split">' + timer +
       audioPanel('game_audio', 'Background music', s.game_audio_path, 'Loops during the competition.', 'game', s.game_audio_volume) +
+      audioPanel('correct_audio', 'Correct answer chime', s.correct_audio_path, 'Plays once each time Show answer is clicked. Does not loop.', null, 0) +
       audioPanel('banner_audio', 'Cover / banner music', s.banner_audio_path, 'Plays on the cover slide.', 'banner', s.banner_audio_volume) +
       '</div>';
   }
