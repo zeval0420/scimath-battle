@@ -6,6 +6,16 @@ require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 require_once __DIR__ . '/event_create.php';
 
 $errors = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['archive_event'])) {
+    // Archive / restore: archived events are hidden from the list below but nothing is deleted.
+    $id = (int)$_POST['archive_event'];
+    $to = ($_POST['archive_to'] ?? '') === 'restore' ? 'ready' : 'archived';
+    $stmt = $conn->prepare("UPDATE scimath_events SET status = ? WHERE id = ?");
+    $stmt->bind_param('si', $to, $id);
+    $stmt->execute();
+    header('Location: index.php?' . ($to === 'archived' ? 'archived=' : 'restored=') . $id);
+    exit;
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = create_event($conn, $_POST, $_FILES['slides'] ?? null);
     if ($result['ok']) {
@@ -25,6 +35,11 @@ $res = $conn->query(
 );
 if ($res) {
     $events = $res->fetch_all(MYSQLI_ASSOC);
+}
+$archived = [];
+$res = $conn->query("SELECT id, name, event_date FROM scimath_events WHERE status = 'archived' ORDER BY event_date DESC, id DESC");
+if ($res) {
+    $archived = $res->fetch_all(MYSQLI_ASSOC);
 }
 
 function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
@@ -137,6 +152,10 @@ include __DIR__ . '/../src/universal/header.php';
               <a class="btn btn-primary" href="../operator/index.php?event=<?= $id ?>">Operate</a>
               <a class="btn btn-primary" href="../scorer/index.php?event=<?= $id ?>">Score</a>
               <a class="btn" href="../configure/index.php?event=<?= $id ?>">Configure</a>
+              <form method="post" onsubmit="return confirm('Archive this event? It is hidden from this list, and nothing is deleted.');" style="display:inline">
+                <input type="hidden" name="archive_event" value="<?= $id ?>">
+                <button class="btn" type="submit">Archive</button>
+              </form>
             </div>
           </div>
         </article>
@@ -145,6 +164,26 @@ include __DIR__ . '/../src/universal/header.php';
       <?php endif; ?>
     </div>
   </section>
+
+  <!-- ===== Archived events ===== -->
+  <?php if ($archived): ?>
+  <section class="card is-collapsed" id="sec-archived">
+    <div class="card-head">
+      <h2 class="card-title">Archived events (<?= count($archived) ?>)</h2>
+      <button class="btn btn-sm btn-ghost" type="button" data-toggle="sec-archived">Show</button>
+    </div>
+    <div class="card-body stack">
+      <?php foreach ($archived as $ev): ?>
+      <form method="post" class="row row-spread">
+        <span><b><?= h($ev['name']) ?></b> <span class="card-meta">&middot; <?= $ev['event_date'] ? h(date('F j, Y', strtotime($ev['event_date']))) : 'No date' ?></span></span>
+        <input type="hidden" name="archive_event" value="<?= (int)$ev['id'] ?>">
+        <input type="hidden" name="archive_to" value="restore">
+        <button class="btn btn-sm" type="submit">Restore</button>
+      </form>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
 
 </main>
 <?php include __DIR__ . '/../src/universal/footer.php'; ?>
