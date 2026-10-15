@@ -71,16 +71,17 @@
     var table = $('q-table');
     // Don't rebuild while the operator is typing in a points/time box.
     if (table.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
-    table.innerHTML = '<thead><tr><th>#</th><th>Question slide</th><th>Answer slide</th><th>Round</th><th>Points</th><th>Time limit (sec)</th><th>Controls</th></tr></thead><tbody>' +
+    table.innerHTML = '<thead><tr><th>#</th><th>Question slide</th><th>Answer slide</th><th>Round</th><th>Points</th><th>Time limit (sec)</th></tr></thead><tbody>' +
       snap.questions.map(function (r) {
-        return '<tr data-qid="' + r.id + '"' + (q && r.id === q.id ? ' class="is-current"' : '') + '>' +
+        var cur = q && r.id === q.id;
+        return '<tr class="q-top' + (cur ? ' is-current' : '') + '" data-qid="' + r.id + '">' +
           '<td><b>' + r.number + '</b></td>' +
           '<td class="preview"><div class="slide-thumb"><img loading="lazy" src="' + url(r.image_path) + '" alt=""></div></td>' +
           '<td class="preview"><div class="slide-thumb">' + (r.answer_image_path ? '<img loading="lazy" src="' + url(r.answer_image_path) + '" alt="">' : 'No answer slide') + '</div></td>' +
           '<td>' + esc(r.round_label) + '</td>' +
           '<td><input type="number" min="0" data-field="points" placeholder="' + (r.eff_points) + '" value="' + (r.points == null ? '' : r.points) + '"></td>' +
           '<td><input type="number" min="1" data-field="time" placeholder="' + (r.eff_time) + '" value="' + (r.time_seconds == null ? '' : r.time_seconds) + '"></td>' +
-          '<td><div class="row-actions">' +
+          '</tr><tr class="q-controls' + (cur ? ' is-current' : '') + '" data-qid="' + r.id + '"><td colspan="6"><div class="row-actions">' +
           '<button class="btn btn-sm" type="button" data-act="show:question">Show question</button>' +
           '<button class="btn btn-sm btn-primary" type="button" data-act="timer_start">Start timer</button>' +
           '<button class="btn btn-sm" type="button" data-act="show:boards_up">Show Boards Up</button>' +

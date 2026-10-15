@@ -94,3 +94,6 @@
 }
 
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 200px; }
+.q-table tr.q-top td { border-bottom: 0; }
+.q-table tr.q-controls td { padding-top: 0; }
+.row-actions { min-width: 0; }
