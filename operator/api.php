@@ -134,6 +134,20 @@ function reset_timer(array &$s, ?array $q): void
 
 // ---------------------------------------------------------------- results
 
+/** Adds 'rank' to rows already sorted best-first. Rows with equal keys share the average of the places they span (two-way tie for 1st = 1.5). */
+function assign_ranks(array $list, callable $key): array
+{
+    $n = count($list);
+    for ($i = 0; $i < $n; ) {
+        $j = $i;
+        while ($j + 1 < $n && $key($list[$j + 1]) === $key($list[$i])) $j++;
+        $avg = ($i + $j + 2) / 2;
+        for ($k = $i; $k <= $j; $k++) $list[$k]['rank'] = $avg;
+        $i = $j + 1;
+    }
+    return $list;
+}
+
 function result_data(int $eid, array $overlay, array $qs): array
 {
     $cons = rows('SELECT id, name, acronym, starting_score FROM scimath_contestants
@@ -191,6 +205,7 @@ function result_data(int $eid, array $overlay, array $qs): array
             $list[] = ['label' => $label($c), 'name' => $c['name'], 'cells' => $cells, 'total' => $total];
         }
         usort($list, fn($a, $b) => $b['total'] <=> $a['total']); // stable: ties keep display order
+        $list = assign_ranks($list, fn($r) => [$r['total']]);
         return ['kind' => 'round', 'round' => $round, 'title' => ROUND_LABEL[$round] . ' Round Results', 'rows' => $list];
     }
 
@@ -205,6 +220,7 @@ function result_data(int $eid, array $overlay, array $qs): array
     }
     // Tied totals are settled by clincher wins.
     usort($list, fn($a, $b) => [$b['total'], $b['wins']] <=> [$a['total'], $a['wins']]);
+    $list = assign_ranks($list, fn($r) => [$r['total'], $r['wins']]); // still tied after the clincher = shared place
     return ['kind' => 'final', 'title' => 'Overall Results', 'rows' => $list];
 }
 

@@ -61,9 +61,11 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: 60px;
+  min-width: 60px;
   height: 60px;
-  border-radius: 50%;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 30px;
   background: var(--accent-soft);
   color: var(--navy);
   font-size: 28px;

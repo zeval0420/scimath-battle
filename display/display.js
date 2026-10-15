@@ -36,7 +36,7 @@
   }
 
   function roundCard(r, i) {
-    return '<div class="score-card"><span class="score-card-rank">' + (i + 1) + '</span>' +
+    return '<div class="score-card"><span class="score-card-rank">' + r.rank + '</span>' +
       '<span class="score-card-school">' + esc(r.label) + '</span>' +
       '<div class="score-card-breakdown is-wrap">' + r.cells.map(function (c) {
         var cls = c.result === 'correct' ? ' is-correct' : (c.result === 'incorrect' || c.result === 'no_answer' ? ' is-wrong' : '');
@@ -52,7 +52,7 @@
         '</span><span class="score-card-part-value">' + r.parts[k] + '</span></div>';
     }).join('');
     if (r.start) parts = '<div class="score-card-part part-start"><span class="score-card-part-label">Start</span><span class="score-card-part-value">' + r.start + '</span></div>' + parts;
-    return '<div class="score-card"><span class="score-card-rank">' + (i + 1) + '</span>' +
+    return '<div class="score-card"><span class="score-card-rank">' + r.rank + '</span>' +
       '<span class="score-card-school">' + esc(r.label) + '</span>' +
       '<div class="score-card-breakdown">' + parts + '</div>' +
       '<span class="score-card-final">' + r.total + '</span></div>';
