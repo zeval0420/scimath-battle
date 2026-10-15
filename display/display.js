@@ -60,8 +60,7 @@
       '<span class="score-card-final">' + r.total + '</span></div>';
   }
 
-  // Question results: pick the column count that makes the tiles as large as possible while
-  // keeping every school on screen, then size the text to the tile.
+  // Question results: 8 columns x 5 rows sized to the space under the logo, title and legend.
   function fitGrid() {
     var tiles = list.querySelectorAll('.result-tile');
     var n = tiles.length;
@@ -76,15 +75,9 @@
       var word = txt.split(/\s+/).reduce(function (m, w) { return Math.max(m, w.length); }, 1);
       longest = Math.max(longest, Math.max(word, Math.ceil(txt.length / 2)));
     });
-    var best = null;
-    for (var cols = 1; cols <= n; cols++) {
-      var rows = Math.ceil(n / cols);
-      var w = (W - gap * (cols - 1)) / cols, h = (H - gap * (rows - 1)) / rows;
-      if (w < 40 || h < 24) continue;
-      var score = Math.min(w / 3, h); // tiles read best at roughly 3:1
-      if (!best || score > best.score) best = { cols: cols, rows: rows, w: w, h: h, score: score };
-    }
-    if (!best) best = { cols: Math.ceil(Math.sqrt(n)), rows: Math.ceil(n / Math.ceil(Math.sqrt(n))), w: 40, h: 24 };
+    // Fixed 8 x 5 grid (more rows only if there are more than 40 schools).
+    var cols = 8, rows = Math.max(5, Math.ceil(n / cols));
+    var best = { cols: cols, rows: rows, w: (W - gap * (cols - 1)) / cols, h: (H - gap * (rows - 1)) / rows };
     var font = Math.max(9, Math.min(34, best.h * 0.34, (best.w - 16) / (longest * 0.6)));
     list.style.overflow = 'hidden';
     list.style.gap = gap + 'px';
