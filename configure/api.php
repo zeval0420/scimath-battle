@@ -332,6 +332,15 @@ try {
             run('DELETE FROM scimath_contestants WHERE id = ? AND event_id = ?', [$id, $eid]); // scores and clincher picks cascade
             break;
 
+        case 'move_contestant': // swap with the neighbour above/below, then renumber 1..N
+            $ids = array_map('intval', array_column(rows('SELECT id FROM scimath_contestants WHERE event_id = ? ORDER BY display_order, id', [$eid]), 'id'));
+            $i = array_search((int)($p['id'] ?? 0), $ids, true);
+            if ($i === false) throw new UserError('Contestant not found.');
+            $j = $i + (($p['dir'] ?? '') === 'up' ? -1 : 1);
+            if (isset($ids[$j])) [$ids[$i], $ids[$j]] = [$ids[$j], $ids[$i]];
+            foreach ($ids as $k => $cid) run('UPDATE scimath_contestants SET display_order = ? WHERE id = ?', [$k + 1, $cid]);
+            break;
+
         case 'import_contestants': // rows parsed from a CSV file in the browser: [{acronym, name}, ...]
             $in = $p['rows'] ?? [];
             if (!is_array($in) || !$in) throw new UserError('The CSV file has no schools in it.');

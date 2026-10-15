@@ -31,7 +31,7 @@
     var cls = 'is-unscored', mark = '';
     if (r.result === 'correct') { cls = 'is-correct'; mark = '&#10003;'; }
     else if (r.result === 'incorrect' || r.result === 'no_answer') { cls = 'is-wrong'; mark = '&#10007;'; }
-    return '<div class="result-tile ' + cls + '"><span class="result-tile-school">' + esc(r.label) + '</span>' +
+    return '<div class="result-tile ' + cls + '"><span class="result-tile-no">' + r.no + '</span><span class="result-tile-school">' + esc(r.label) + '</span>' +
       '<span class="result-tile-mark">' + mark + '</span></div>';
   }
 
@@ -92,6 +92,7 @@
       t.querySelector('.result-tile-school').style.fontSize = font + 'px';
       t.querySelector('.result-tile-mark').style.fontSize = (font * 1.15) + 'px';
       t.querySelector('.result-tile-mark').style.minHeight = '0';
+      t.querySelector('.result-tile-no').style.fontSize = Math.max(9, font * 0.6) + 'px';
     });
   }
   window.addEventListener('resize', fitGrid);

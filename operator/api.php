@@ -156,6 +156,8 @@ function result_data(int $eid, array $overlay, array $qs): array
                      FROM scimath_score_entries e JOIN scimath_questions q ON q.id = e.question_id
                      WHERE e.event_id = ? ORDER BY e.id', [$eid]);
     $kind = $overlay['kind'] ?? 'question';
+    $num = [];
+    foreach ($cons as $i => $c) $num[(int)$c['id']] = $i + 1; // school number = its position in the configured order
     $label = fn($c) => $c['acronym'] !== null && $c['acronym'] !== '' ? $c['acronym'] : $c['name'];
 
     if ($kind === 'question') {
@@ -167,7 +169,7 @@ function result_data(int $eid, array $overlay, array $qs): array
             foreach ($cons as $c) {
                 if (!in_array((int)$c['id'], $cl['participants'], true)) continue;
                 $win = in_array((int)$c['id'], $cl['winners'], true);
-                $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => $win ? 'correct' : 'incorrect', 'points' => null];
+                $list[] = ['no' => $num[(int)$c['id']], 'label' => $label($c), 'name' => $c['name'], 'result' => $win ? 'correct' : 'incorrect', 'points' => null];
             }
             return ['kind' => 'question', 'title' => $q['name'] . ' Results', 'rows' => $list];
         }
@@ -177,7 +179,7 @@ function result_data(int $eid, array $overlay, array $qs): array
         $list = [];
         foreach ($cons as $c) {
             $e = $by[(int)$c['id']] ?? null;
-            $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => $e['result'] ?? 'unscored', 'points' => $e ? (int)$e['points_awarded'] : null];
+            $list[] = ['no' => $num[(int)$c['id']], 'label' => $label($c), 'name' => $c['name'], 'result' => $e['result'] ?? 'unscored', 'points' => $e ? (int)$e['points_awarded'] : null];
         }
         return ['kind' => 'question', 'title' => $q ? $q['name'] . ' Results' : 'Question Results', 'rows' => $list];
     }

@@ -165,3 +165,13 @@
 .overlay.is-compact .result-legend { font-size: 18px; gap: 24px; }
 .overlay.is-compact .legend-mark { width: 28px; height: 28px; font-size: 18px; border-radius: 8px; }
 .result-legend { align-self: start; line-height: 1; }
+
+.result-tile { position: relative; }
+.result-tile-no {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  opacity: 0.85;
+}

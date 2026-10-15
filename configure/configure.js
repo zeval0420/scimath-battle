@@ -193,8 +193,11 @@
   function renderContestants() {
     var cs = state.contestants;
     $('body-contestants').innerHTML =
-      (cs.length ? cs.map(function (c) {
-        return '<div class="list-row" data-cid="' + c.id + '">' +
+      (cs.length ? cs.map(function (c, i) {
+        return '<div class="list-row list-row-school" data-cid="' + c.id + '">' +
+          '<span class="school-no" title="School number (its position in the order)">' + (i + 1) + '</span>' +
+          '<button class="btn btn-sm btn-ghost" type="button" data-act="c-move" data-dir="up" title="Move up"' + (i === 0 ? ' disabled' : '') + '>&uarr;</button>' +
+          '<button class="btn btn-sm btn-ghost" type="button" data-act="c-move" data-dir="down" title="Move down"' + (i === cs.length - 1 ? ' disabled' : '') + '>&darr;</button>' +
           '<input class="input" type="text" maxlength="255" placeholder="Acronym" data-act="c-field" data-prop="acronym" value="' + esc(c.acronym) + '">' +
           '<input class="input" type="text" maxlength="150" placeholder="Name" data-act="c-field" data-prop="name" value="' + esc(c.name) + '">' +
           '<button class="btn btn-sm btn-danger" type="button" data-act="c-del">Delete</button></div>';
@@ -352,6 +355,8 @@
       }
     } else if (act === 'bulk-round') {
       call('bulk_round', { from: $('bulk-from').value, to: $('bulk-to').value, round: $('bulk-round').value });
+    } else if (act === 'c-move') {
+      call('move_contestant', { id: Number(tgt.closest('[data-cid]').dataset.cid), dir: tgt.dataset.dir });
     } else if (act === 'c-del') {
       var row = tgt.closest('[data-cid]');
       var name = row.querySelector('[data-prop=name]').value;

@@ -45,3 +45,14 @@ input[type=range] { width: 100%; }
 @media (max-width: 600px) { .row-form { grid-template-columns: 1fr; } }
 .list-row { display: grid; gap: var(--gap); grid-template-columns: 140px 1fr auto; align-items: center; }
 @media (max-width: 600px) { .list-row { grid-template-columns: 1fr; } }
+.list-row.list-row-school { grid-template-columns: 44px 36px 36px 140px 1fr auto; }
+@media (max-width: 600px) { .list-row.list-row-school { grid-template-columns: 44px 36px 36px 1fr; } }
+.school-no {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 800;
+}
