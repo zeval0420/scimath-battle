@@ -869,19 +869,8 @@ hr {
 .rank-badge.rank-2 { background: linear-gradient(135deg, #f1f3f7, #b9c1ce); color: #2e3644; }
 .rank-badge.rank-3 { background: linear-gradient(135deg, #f3c9a0, #c98440); color: #4a2606; }
 
-.score-list > .score-card:nth-child(1) { border-left-color: #e8b923; }
-.score-list > .score-card:nth-child(2) { border-left-color: #b9c1ce; }
-.score-list > .score-card:nth-child(3) { border-left-color: #c98440; }
-
-.score-list > .score-card:nth-child(1) .score-card-rank { background: linear-gradient(135deg, #ffe58a, #e8b923); color: #4a3500; }
-.score-list > .score-card:nth-child(2) .score-card-rank { background: linear-gradient(135deg, #f1f3f7, #b9c1ce); color: #2e3644; }
-.score-list > .score-card:nth-child(3) .score-card-rank { background: linear-gradient(135deg, #f3c9a0, #c98440); color: #4a2606; }
 
 .score-card-part { border-radius: 18px; }
 .col-rank { text-align: center; }
-/* Question results are not ranked: no podium colours on the left edge. */
-.score-list > .score-card.is-correct:nth-child(-n+3) { border-left-color: #1c6b3a; }
-.score-list > .score-card.is-wrong:nth-child(-n+3) { border-left-color: #7d150f; }
-.score-list > .score-card.is-unscored:nth-child(-n+3) { border-left-color: #9db4e8; }
 .score-card.is-correct { border-left-color: #1c6b3a; }
 .score-card.is-wrong { border-left-color: #7d150f; }
