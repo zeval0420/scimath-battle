@@ -130,7 +130,7 @@ foreach ($questions as $q) {
         <?php foreach ($groups as $g): ?><th colspan="<?= $g['n'] ?>"><?= h(ROUND_LABELS[$g['round']]) ?></th><?php endforeach; ?>
         <th rowspan="2">Total</th><th rowspan="2">Rank</th>
       </tr>
-      <tr><?php foreach ($questions as $q): ?><th><?= h($q['name']) ?></th><?php endforeach; ?></tr>
+      <tr><?php foreach ($questions as $q): ?><th><?= $q['number'] ?></th><?php endforeach; ?></tr>
     </thead>
     <tbody>
       <?php foreach ($contestants as $i => $c): $row = $rows[$i]; ?>

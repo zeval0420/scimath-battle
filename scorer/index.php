@@ -137,6 +137,6 @@ include __DIR__ . '/../src/universal/header.php';
 <script>
   var DATA = <?= json_encode($payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 </script>
-<script src="scorer.js"></script>
+<script src="scorer.js?v=<?= filemtime(__DIR__ . '/scorer.js') ?>"></script>
 </body>
 </html>
