@@ -33,11 +33,14 @@ function load_questions(mysqli $conn, int $eventId, int $defaultPoints): array
     $stmt->bind_param('i', $eventId);
     $stmt->execute();
     $out = [];
+    $seen = [];
     foreach ($stmt->get_result() as $r) {
+        $rn = $seen[$r['round']] = ($seen[$r['round']] ?? 0) + 1; // number within its round
         $out[] = [
             'id'     => (int)$r['id'],
             'round'  => $r['round'],
-            'number' => (int)$r['question_number'],
+            'number' => $rn,
+            'name'   => ROUND_LABELS[$r['round']] . ' ' . $rn,
             'points' => $r['points'] === null ? $defaultPoints : (int)$r['points'],
         ];
     }
