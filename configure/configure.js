@@ -129,6 +129,7 @@
       '<div class="row">' +
       '<button class="btn" type="button" data-act="alternate">Alternate: question, answer, question, answer...</button>' +
       '<button class="btn" type="button" data-act="all-promo">Set all as promotional</button>' +
+      '<button class="btn btn-danger" type="button" data-act="delete-all-slides">Delete all slides</button>' +
       '<span class="hint">' + counts.question + ' question(s), ' + counts.answer + ' answer(s), ' + counts.promo + ' promotional</span>' +
       '</div>' +
       '<div class="tile-grid">' + slides.map(function (s, i) {
@@ -137,7 +138,8 @@
           '<select class="dropdown dropdown-sm" data-act="kind" data-kind="' + s.kind + '" data-id="' + s.id + '">' +
           Object.keys(KIND).map(function (k) {
             return '<option value="' + k + '"' + (k === s.kind ? ' selected' : '') + '>' + KIND[k] + '</option>';
-          }).join('') + '</select></div>';
+          }).join('') + '</select>' +
+          '<button class="btn btn-sm btn-danger" type="button" data-act="delete-slide" data-kind="' + s.kind + '" data-id="' + s.id + '">Delete</button></div>';
       }).join('') + '</div>';
   }
 
@@ -336,6 +338,18 @@
           return { kind: s.kind, id: s.id, to: act === 'all-promo' ? 'promo' : (i % 2 === 0 ? 'question' : 'answer') };
         })
       });
+    } else if (act === 'delete-slide') {
+      var sid = Number(tgt.dataset.id), sk = tgt.dataset.kind;
+      var sl = state.slides.filter(function (s) { return s.kind === sk && Number(s.id) === sid; })[0];
+      var sc = sl ? Number(sl.score_count || 0) : 0;
+      if (confirm('Delete this slide?' + (sc ? '\n\nIt is a question with ' + sc + ' recorded score(s); those are deleted too.' : ''))) {
+        call('delete_slide', { kind: sk, id: sid, force: sc > 0 });
+      }
+    } else if (act === 'delete-all-slides') {
+      var scored = state.slides.reduce(function (n, s) { return n + Number(s.score_count || 0); }, 0);
+      if (confirm('Delete ALL ' + state.slides.length + ' slides? This cannot be undone.' + (scored ? '\n\nRecorded scores for the questions will be deleted too.' : ''))) {
+        call('delete_all_slides', { force: scored > 0 });
+      }
     } else if (act === 'bulk-round') {
       call('bulk_round', { from: $('bulk-from').value, to: $('bulk-to').value, round: $('bulk-round').value });
     } else if (act === 'c-del') {

@@ -74,7 +74,9 @@ function load_state(int $eid): array
     foreach (rows('SELECT id, title, file_path AS path, display_order, is_active FROM scimath_promotional_slides WHERE event_id = ?', [$eid]) as $r) {
         $slides[] = $r + ['kind' => 'promo'];
     }
-    foreach (rows('SELECT id, image_path AS path, display_order FROM scimath_questions WHERE event_id = ?', [$eid]) as $r) {
+    foreach (rows('SELECT q.id, q.image_path AS path, q.display_order,
+                         (SELECT COUNT(*) FROM scimath_score_entries s WHERE s.question_id = q.id) AS score_count
+                         FROM scimath_questions q WHERE q.event_id = ?', [$eid]) as $r) {
         $slides[] = $r + ['kind' => 'question'];
     }
     foreach (rows('SELECT id, image_path AS path, display_order FROM scimath_answer_slides WHERE event_id = ?', [$eid]) as $r) {
@@ -198,6 +200,34 @@ function classify(int $eid, array $items): void
     sync_answers($eid);
 }
 
+/** Deletes slides (and their files). $only = one [kind, id], or null for every slide of the event. */
+function delete_slides(int $eid, ?array $only, bool $force): void
+{
+    $src = [
+        'promo'    => ['scimath_promotional_slides', 'file_path'],
+        'question' => ['scimath_questions', 'image_path'],
+        'answer'   => ['scimath_answer_slides', 'image_path'],
+    ];
+    $targets = $only ? [$only[0] => [$only[1]]] : null;
+    foreach ($src as $kind => [$table, $col]) {
+        if ($targets && !isset($targets[$kind])) continue;
+        $where = $targets ? ' AND id = ' . (int)$targets[$kind][0] : '';
+        $found = rows("SELECT id, $col AS path FROM $table WHERE event_id = ?$where", [$eid]);
+        if ($only && !$found) throw new UserError('Slide not found.');
+        foreach ($found as $r) {
+            if ($kind === 'question' && !$force
+                && val('SELECT COUNT(*) FROM scimath_score_entries WHERE question_id = ?', [$r['id']]) > 0) {
+                throw new UserError('A question slide already has scores. Confirm to delete it together with its scores.');
+            }
+            $paths[] = $r['path'];
+            run("DELETE FROM $table WHERE id = ?", [$r['id']]); // scores and clincher picks cascade
+        }
+    }
+    foreach ($paths ?? [] as $path) delete_event_file($eid, $path);
+    renumber_questions($eid);
+    sync_answers($eid);
+}
+
 // ---------------------------------------------------------------- dispatch
 
 try {
@@ -262,6 +292,14 @@ try {
             $from = opt_int($p['from'] ?? null, 1, 65535, 'From'); $to = opt_int($p['to'] ?? null, 1, 65535, 'To');
             if ($from === null || $to === null || $from > $to) throw new UserError('Enter a valid question range.');
             run('UPDATE scimath_questions SET round = ? WHERE event_id = ? AND question_number BETWEEN ? AND ?', [$p['round'], $eid, $from, $to]);
+            break;
+
+        case 'delete_slide':
+            delete_slides($eid, [(string)($p['kind'] ?? ''), (int)($p['id'] ?? 0)], !empty($p['force']));
+            break;
+
+        case 'delete_all_slides':
+            delete_slides($eid, null, !empty($p['force']));
             break;
 
         case 'save_promo':
