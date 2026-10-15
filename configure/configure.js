@@ -203,7 +203,7 @@
       '<button class="btn btn-primary" type="submit">Add contestant</button></form>' +
       '<div class="field"><label class="field-label" for="c-csv">Or import from a CSV file</label>' +
       '<input type="file" id="c-csv" accept=".csv,text/csv,text/plain" data-act="c-csv">' +
-      '<span class="hint">One school per row: <b>acronym,name</b> (or just the name). A header row with "acronym" and "name" columns also works. Schools already listed are skipped.</span></div>';
+      '<span class="hint">One school per row: <b>acronym,name</b> (or just the name). A header row with "acronym" and "name" columns also works. Schools already listed are skipped. <a href="../assets/schools_template.csv" download>Download CSV template</a></span></div>';
   }
 
   // Minimal CSV parser (quoted fields, "" escapes, CRLF, BOM).

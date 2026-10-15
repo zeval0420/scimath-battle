@@ -36,7 +36,7 @@
   }
 
   function roundCard(r, i) {
-    return '<div class="score-card"><span class="score-card-rank">' + r.rank + '</span>' +
+    return '<div class="score-card is-ranked"><span class="score-card-rank">' + r.rank + '</span>' +
       '<span class="score-card-school">' + esc(r.label) + '</span>' +
       '<div class="score-card-breakdown is-wrap">' + r.cells.map(function (c) {
         var cls = c.result === 'correct' ? ' is-correct' : (c.result === 'incorrect' || c.result === 'no_answer' ? ' is-wrong' : '');
@@ -57,6 +57,47 @@
       '<div class="score-card-breakdown">' + parts + '</div>' +
       '<span class="score-card-final">' + r.total + '</span></div>';
   }
+
+  // Question results: pick the column count that makes the tiles as large as possible while
+  // keeping every school on screen, then size the text to the tile.
+  function fitGrid() {
+    var tiles = list.querySelectorAll('.result-tile');
+    var n = tiles.length;
+    if (!n || !list.classList.contains('is-grid')) return;
+    var legend = list.querySelector('.result-legend');
+    var gap = 14;
+    list.style.cssText = '';
+    var W = list.clientWidth, H = list.clientHeight - (legend ? legend.offsetHeight + gap : 0);
+    var longest = 0;
+    tiles.forEach(function (t) {
+      var txt = t.querySelector('.result-tile-school').textContent;
+      var word = txt.split(/\s+/).reduce(function (m, w) { return Math.max(m, w.length); }, 1);
+      longest = Math.max(longest, Math.max(word, Math.ceil(txt.length / 2)));
+    });
+    var best = null;
+    for (var cols = 1; cols <= n; cols++) {
+      var rows = Math.ceil(n / cols);
+      var w = (W - gap * (cols - 1)) / cols, h = (H - gap * (rows - 1)) / rows;
+      if (w < 40 || h < 24) continue;
+      var score = Math.min(w / 3, h); // tiles read best at roughly 3:1
+      if (!best || score > best.score) best = { cols: cols, rows: rows, w: w, h: h, score: score };
+    }
+    if (!best) best = { cols: Math.ceil(Math.sqrt(n)), rows: Math.ceil(n / Math.ceil(Math.sqrt(n))), w: 40, h: 24 };
+    var font = Math.max(9, Math.min(34, best.h * 0.34, (best.w - 16) / (longest * 0.6)));
+    list.style.overflow = 'hidden';
+    list.style.gap = gap + 'px';
+    list.style.gridTemplateColumns = 'repeat(' + best.cols + ', minmax(0, 1fr))';
+    list.style.gridAutoRows = Math.floor(best.h) + 'px';
+    tiles.forEach(function (t) {
+      t.style.minHeight = '0';
+      t.style.padding = Math.round(font * 0.3) + 'px';
+      t.style.borderRadius = Math.round(font * 0.8) + 'px';
+      t.querySelector('.result-tile-school').style.fontSize = font + 'px';
+      t.querySelector('.result-tile-mark').style.fontSize = (font * 1.15) + 'px';
+      t.querySelector('.result-tile-mark').style.minHeight = '0';
+    });
+  }
+  window.addEventListener('resize', fitGrid);
 
   function renderScreen(sc) {
     var key = JSON.stringify(sc);
@@ -88,6 +129,7 @@
       if (isGrid && html) html = LEGEND + html;
       list.innerHTML = html || '<div class="score-card"><span class="score-card-name">No contestants yet.</span></div>';
       overlay.hidden = false;
+      if (isGrid) fitGrid(); else list.style.cssText = '';
       list.scrollTop = wasResults ? prevScroll : 0;
     }
   }
