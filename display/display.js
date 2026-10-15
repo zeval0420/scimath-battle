@@ -183,10 +183,10 @@
     var au = snap.audio, onCover = snap.state.hidden || snap.state.banner;
     setSrc(aBanner, au.banner); setSrc(aGame, au.game); setSrc(aTimer, au.timer);
     aBanner.volume = au.banner_volume / 100;
-    // Background music is silent on promo slides, the answer and every results screen; it fades back up
+    // Background music is silent on promo slides, Boards Up, the answer and every results screen; it fades back up
     // (to the configured game volume, 30% by default) once the next question is shown.
     var ov = snap.state.overlay;
-    var quiet = !!ov || snap.state.base === 'answer';
+    var quiet = !!ov || snap.state.base === 'answer' || snap.state.base === 'boards_up';
     fadeVolume(aGame, quiet ? 0 : au.game_volume / 100);
     play(aBanner, onCover);
     play(aGame, !onCover);
