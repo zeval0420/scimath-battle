@@ -54,6 +54,12 @@ $payload = [
     .table thead th[data-q] { cursor: pointer; }
     .col-rank { background: var(--surface-2); font-weight: 700; }
     .scorer-name { width: 160px; }
+    /* Everything left-aligned: team cards and tabulation */
+    .card-row { justify-content: flex-start; }
+    .card-row .card-row-label { flex: 0 0 280px; }
+    .card-row .scored-by { flex: 0 0 140px; text-align: left; }
+    #tabulation th, #tabulation td { text-align: left; }
+    .col-rank { text-align: left; }
     .school-no { display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 8px; margin-right: 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 15px; font-weight: 800; vertical-align: middle; }
   </style>
 </head>
