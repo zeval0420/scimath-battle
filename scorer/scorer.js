@@ -200,7 +200,7 @@
     groups.forEach(function (g) {
       g.qs.forEach(function (q) {
         html += '<th class="th-' + DATA.css[g.round] + (q.id === currentId ? ' is-current' : '') +
-          '" data-q="' + q.id + '" title="' + q.points + ' pts">' + q.number + '</th>';
+          '" data-q="' + q.id + '" title="' + q.points + ' pts">' + esc(q.name) + '</th>';
       });
     });
     html += '</tr></thead><tbody>';
