@@ -11,6 +11,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $conn->set_charset('utf8mb4');
 
 const ROUNDS = ['easy', 'medium', 'hard', 'clincher'];
+const SCORED_ROUNDS = ['easy', 'medium', 'hard']; // clincher rounds carry no points; the operator picks winners
 const ROUND_LABEL = ['easy' => 'Easy', 'medium' => 'Average', 'hard' => 'Difficult', 'clincher' => 'Clincher'];
 const BASES = ['question', 'answer', 'boards_up'];
 
@@ -142,6 +143,17 @@ function result_data(int $eid, array $overlay, array $qs): array
 
     if ($kind === 'question') {
         $q = find_question($qs, (int)($overlay['question_id'] ?? 0));
+        if ($q && $q['round'] === 'clincher') {
+            // No points: show the teams that played, winners in green.
+            $cl = load_clincher($GLOBALS['conn'], $eid)[(int)$q['id']] ?? ['participants' => [], 'winners' => []];
+            $list = [];
+            foreach ($cons as $c) {
+                if (!in_array((int)$c['id'], $cl['participants'], true)) continue;
+                $win = in_array((int)$c['id'], $cl['winners'], true);
+                $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => $win ? 'correct' : 'incorrect', 'points' => null];
+            }
+            return ['kind' => 'question', 'title' => 'Clincher ' . $q['number'] . ' Results', 'rows' => $list];
+        }
         // Teams appear in the order their answers were scored; unscored teams follow in display order.
         $byId = [];
         foreach ($cons as $c) $byId[(int)$c['id']] = $c;
@@ -159,7 +171,7 @@ function result_data(int $eid, array $overlay, array $qs): array
     }
 
     if ($kind === 'round') {
-        $round = in_array($overlay['round'] ?? '', ROUNDS, true) ? $overlay['round'] : 'easy';
+        $round = in_array($overlay['round'] ?? '', SCORED_ROUNDS, true) ? $overlay['round'] : 'easy';
         $rq = array_values(array_filter($qs, fn($q) => $q['round'] === $round));
         $list = [];
         foreach ($cons as $c) {
@@ -182,8 +194,8 @@ function result_data(int $eid, array $overlay, array $qs): array
     $wins = clincher_wins(load_clincher($GLOBALS['conn'], $eid));
     $list = [];
     foreach ($cons as $c) {
-        $parts = array_fill_keys(ROUNDS, 0);
-        foreach ($entries as $e) if ((int)$e['contestant_id'] === (int)$c['id']) $parts[$e['round']] += (int)$e['points_awarded'];
+        $parts = array_fill_keys(SCORED_ROUNDS, 0);
+        foreach ($entries as $e) if ((int)$e['contestant_id'] === (int)$c['id'] && isset($parts[$e['round']])) $parts[$e['round']] += (int)$e['points_awarded'];
         $list[] = ['label' => $label($c), 'name' => $c['name'], 'parts' => $parts,
                    'start' => (int)$c['starting_score'], 'total' => (int)$c['starting_score'] + array_sum($parts),
                    'wins' => $wins[(int)$c['id']] ?? 0];
@@ -253,7 +265,7 @@ function snapshot(int $eid, array $s, int $now, bool $operator): array
         $snap['questions'] = $qs;
         $snap['promos'] = rows('SELECT id, title, file_path AS path FROM scimath_promotional_slides
                                 WHERE event_id = ? AND is_active = 1 ORDER BY display_order, id', [$eid]);
-        $snap['rounds'] = array_map(fn($r) => ['value' => $r, 'label' => ROUND_LABEL[$r]], ROUNDS);
+        $snap['rounds'] = array_map(fn($r) => ['value' => $r, 'label' => ROUND_LABEL[$r]], SCORED_ROUNDS);
         $snap['contestants'] = rows('SELECT id, name, acronym FROM scimath_contestants
                                      WHERE event_id = ? AND is_active = 1 ORDER BY display_order, id', [$eid]);
         $snap['clincher'] = (object)load_clincher($GLOBALS['conn'], $eid);
@@ -336,7 +348,7 @@ try {
         case 'show_results':
             $kind = $p['kind'] ?? '';
             if (!in_array($kind, ['question', 'round', 'final'], true)) throw new UserError('Invalid results type.');
-            $round = in_array($p['round'] ?? '', ROUNDS, true) ? $p['round'] : ($cur['round'] ?? 'easy');
+            $round = in_array($p['round'] ?? '', SCORED_ROUNDS, true) ? $p['round'] : (in_array($cur['round'] ?? '', SCORED_ROUNDS, true) ? $cur['round'] : 'easy');
             $s['overlay'] = ['type' => 'results', 'kind' => $kind, 'question_id' => $s['question_id'], 'round' => $round];
             $s['hidden'] = false; $s['banner'] = false; $s['scroll'] = 0; $s['scroll_by'] = 'operator-reset';
             $changed = true;

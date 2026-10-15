@@ -47,7 +47,7 @@
   }
 
   function finalCard(r, i) {
-    var parts = Object.keys(ROUND_LABEL).map(function (k) {
+    var parts = ['easy', 'medium', 'hard'].map(function (k) {
       return '<div class="score-card-part part-' + ROUND_CLASS[k] + '"><span class="score-card-part-label">' + ROUND_LABEL[k] +
         '</span><span class="score-card-part-value">' + r.parts[k] + '</span></div>';
     }).join('');

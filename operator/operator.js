@@ -94,6 +94,7 @@
   function teamLabel(c) { return c.acronym || c.name; }
 
   // Clincher: two school dropdowns per round by default, with "Add school" for more.
+  var clincherShown = 1;    // clincher rounds visible in the operator panel
   var clincherSlots = {};   // question id -> number of dropdowns shown
 
   function slotRow(q, teams, chosen, won, removable) {
@@ -117,7 +118,14 @@
       list.innerHTML = '<div class="empty">No clincher questions. Add some on the Configure page.</div>';
       return;
     }
-    list.innerHTML = qs.map(function (q) {
+    // Only the first clincher round shows by default; "Add clincher round" reveals the next one.
+    var used = 0;
+    qs.forEach(function (q, i) { if ((snap.clincher[q.id] || { participants: [] }).participants.length) used = i + 1; });
+    clincherShown = Math.min(qs.length, Math.max(1, clincherShown, used));
+    var addBtn = '<div>' + (clincherShown < qs.length
+      ? '<button class="btn" type="button" data-clincher-act="add-round">+ Add clincher round</button>'
+      : '<span class="hint">All clincher questions are shown. Add more on the Configure page.</span>') + '</div>';
+    list.innerHTML = qs.slice(0, clincherShown).map(function (q) {
       var c = snap.clincher[q.id] || { participants: [], winners: [] };
       var n = Math.max(2, c.participants.length, clincherSlots[q.id] || 0);
       clincherSlots[q.id] = n;
@@ -128,7 +136,7 @@
       }
       return '<div class="stack clincher-q" data-clincher-q="' + q.id + '" style="gap:8px"><b>Clincher Q' + q.number + '</b>' +
         rows + '<div><button class="btn btn-sm" type="button" data-clincher-act="add">+ Add school</button></div></div>';
-    }).join('');
+    }).join('') + addBtn;
   }
 
   function renderBoards() {
@@ -276,6 +284,7 @@
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-clincher-act]');
     if (!b) return;
+    if (b.dataset.clincherAct === 'add-round') { clincherShown++; renderClincher(); return; }
     var wrap = b.closest('[data-clincher-q]'), qid = wrap.dataset.clincherQ;
     if (b.dataset.clincherAct === 'add') {
       clincherSlots[qid] = (clincherSlots[qid] || 2) + 1;

@@ -27,7 +27,7 @@ function load_questions(mysqli $conn, int $eventId, int $defaultPoints): array
     $stmt = $conn->prepare(
         "SELECT id, `round`, question_number, points
          FROM scimath_questions
-         WHERE event_id = ? AND is_active = 1
+         WHERE event_id = ? AND is_active = 1 AND `round` <> 'clincher' -- clincher rounds are decided by the operator's winner pick, not scored
          ORDER BY FIELD(`round`, 'easy', 'medium', 'hard', 'clincher'), display_order, question_number"
     );
     $stmt->bind_param('i', $eventId);
@@ -72,9 +72,10 @@ function load_scores(mysqli $conn, int $eventId): array
     $stmt = $conn->prepare(
         "SELECT question_id, contestant_id, result, points_awarded, scored_by
          FROM scimath_score_entries
-         WHERE event_id = ? AND result <> 'adjustment'"
+         WHERE event_id = ? AND result <> 'adjustment'
+           AND question_id IN (SELECT id FROM scimath_questions WHERE event_id = ? AND `round` <> 'clincher')"
     );
-    $stmt->bind_param('i', $eventId);
+    $stmt->bind_param('ii', $eventId, $eventId);
     $stmt->execute();
     $out = [];
     foreach ($stmt->get_result() as $r) {

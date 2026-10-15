@@ -100,7 +100,7 @@ include __DIR__ . '/../src/universal/header.php';
   <?php card_close(); ?>
 
   <?php card_open('clincher', 'Clincher rounds'); ?>
-      <p class="hint">Only needed for ties. Each clincher question is its own round: pick the teams playing it, then mark who won. Winners rank above the teams they beat on tied totals.</p>
+      <p class="hint">Only needed for ties. Clincher rounds carry no score: pick the teams playing each round and mark who won. Winners rank above the teams they beat on tied totals.</p>
       <div class="stack" id="clincher-list"></div>
   <?php card_close(); ?>
 

@@ -109,15 +109,6 @@
     if (currentId === null) return;
     var q = qById[currentId];
     var teams = contestants;
-    if (q.round === 'clincher') {
-      // Only the teams the operator picked for this clincher round play it.
-      var picked = (DATA.clincher[q.id] || { participants: [] }).participants;
-      teams = contestants.filter(function (c) { return picked.indexOf(c.id) !== -1; });
-      if (!teams.length) {
-        el.cards.innerHTML = '<div class="empty">The operator has not selected participants for this clincher round yet.</div>';
-        return;
-      }
-    }
     el.cards.innerHTML = teams.map(function (c) {
       var s = scores[key(q.id, c.id)];
       var res = s ? s.r : null;
