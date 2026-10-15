@@ -93,9 +93,25 @@
 
   function teamLabel(c) { return c.acronym || c.name; }
 
+  // Clincher: two school dropdowns per round by default, with "Add school" for more.
+  var clincherSlots = {};   // question id -> number of dropdowns shown
+
+  function slotRow(q, teams, chosen, won, removable) {
+    var opts = '<option value="">Select school...</option>' + snap.contestants.map(function (t) {
+      var taken = chosen !== Number(t.id) && teams.indexOf(Number(t.id)) !== -1;
+      return '<option value="' + t.id + '"' + (chosen === Number(t.id) ? ' selected' : '') + (taken ? ' disabled' : '') + '>' +
+        esc(teamLabel(t) + (t.acronym ? ' - ' + t.name : '')) + '</option>';
+    }).join('');
+    return '<div class="row clincher-slot">' +
+      '<select class="dropdown" data-clincher="team">' + opts + '</select>' +
+      '<label><input type="checkbox" data-clincher="win"' + (won ? ' checked' : '') + (chosen ? '' : ' disabled') + '> Winner</label>' +
+      (removable ? '<button class="btn btn-sm btn-ghost" type="button" data-clincher-act="remove" title="Remove">&times;</button>' : '') +
+      '</div>';
+  }
+
   function renderClincher() {
     var list = $('clincher-list');
-    if (list.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
+    if (list.contains(document.activeElement) && /^(INPUT|SELECT)$/.test(document.activeElement.tagName)) return;
     var qs = snap.questions.filter(function (q) { return q.round === 'clincher'; });
     if (!qs.length) {
       list.innerHTML = '<div class="empty">No clincher questions. Add some on the Configure page.</div>';
@@ -103,15 +119,15 @@
     }
     list.innerHTML = qs.map(function (q) {
       var c = snap.clincher[q.id] || { participants: [], winners: [] };
-      var teams = snap.contestants.map(function (t) {
-        var playing = c.participants.indexOf(Number(t.id)) !== -1;
-        var won = c.winners.indexOf(Number(t.id)) !== -1;
-        return '<tr data-team="' + t.id + '"><td>' + esc(teamLabel(t)) + (t.acronym ? ' <span class="hint">' + esc(t.name) + '</span>' : '') + '</td>' +
-          '<td><label><input type="checkbox" data-clincher="play"' + (playing ? ' checked' : '') + '> Playing</label></td>' +
-          '<td><label><input type="checkbox" data-clincher="win"' + (won ? ' checked' : '') + (playing ? '' : ' disabled') + '> Winner</label></td></tr>';
-      }).join('');
-      return '<div class="stack clincher-q" data-clincher-q="' + q.id + '" style="gap:6px"><b>Clincher Q' + q.number + '</b>' +
-        '<table class="q-table"><tbody>' + teams + '</tbody></table></div>';
+      var n = Math.max(2, c.participants.length, clincherSlots[q.id] || 0);
+      clincherSlots[q.id] = n;
+      var rows = '';
+      for (var i = 0; i < n; i++) {
+        var id = c.participants[i] != null ? Number(c.participants[i]) : 0;
+        rows += slotRow(q, c.participants.map(Number), id, id && c.winners.indexOf(id) !== -1, i >= 2);
+      }
+      return '<div class="stack clincher-q" data-clincher-q="' + q.id + '" style="gap:8px"><b>Clincher Q' + q.number + '</b>' +
+        rows + '<div><button class="btn btn-sm" type="button" data-clincher-act="add">+ Add school</button></div></div>';
     }).join('');
   }
 
@@ -230,23 +246,46 @@
     }
   });
 
-  // Clincher participants / winners: saved on every tick
-  document.addEventListener('change', function (e) {
-    var box = e.target.closest('[data-clincher]');
-    if (!box) return;
-    var wrap = box.closest('[data-clincher-q]');
-    if (box.dataset.clincher === 'play') {
-      var win = box.closest('tr').querySelector('[data-clincher=win]');
-      win.disabled = !box.checked;
-      if (!box.checked) win.checked = false;
-    }
-    function ids(kind) {
-      return Array.prototype.filter.call(wrap.querySelectorAll('[data-clincher=' + kind + ']'), function (b) { return b.checked; })
-        .map(function (b) { return Number(b.closest('tr').dataset.team); });
-    }
+  // Clincher participants / winners: saved on every change
+  function saveClincher(wrap) {
+    var participants = [], winners = [];
+    wrap.querySelectorAll('.clincher-slot').forEach(function (slot) {
+      var id = Number(slot.querySelector('[data-clincher=team]').value);
+      if (!id || participants.indexOf(id) !== -1) return;
+      participants.push(id);
+      if (slot.querySelector('[data-clincher=win]').checked) winners.push(id);
+    });
     busy = true;
-    call('save_clincher', { question_id: Number(wrap.dataset.clincherQ), participants: ids('play'), winners: ids('win') })
+    return call('save_clincher', { question_id: Number(wrap.dataset.clincherQ), participants: participants, winners: winners })
       .then(function () { busy = false; });
+  }
+
+  document.addEventListener('change', function (e) {
+    var el = e.target.closest('[data-clincher]');
+    if (!el) return;
+    var wrap = el.closest('[data-clincher-q]');
+    var slot = el.closest('.clincher-slot');
+    if (el.dataset.clincher === 'team') {
+      var win = slot.querySelector('[data-clincher=win]');
+      win.disabled = !el.value;
+      if (!el.value) win.checked = false;
+    }
+    saveClincher(wrap);
+  });
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-clincher-act]');
+    if (!b) return;
+    var wrap = b.closest('[data-clincher-q]'), qid = wrap.dataset.clincherQ;
+    if (b.dataset.clincherAct === 'add') {
+      clincherSlots[qid] = (clincherSlots[qid] || 2) + 1;
+      var teams = Array.prototype.map.call(wrap.querySelectorAll('[data-clincher=team]'), function (x) { return Number(x.value); });
+      b.parentNode.insertAdjacentHTML('beforebegin', slotRow({ id: qid }, teams.filter(Boolean), 0, false, true));
+    } else {
+      clincherSlots[qid] = Math.max(2, (clincherSlots[qid] || 2) - 1);
+      b.closest('.clincher-slot').remove();
+      saveClincher(wrap);
+    }
   });
 
   // Per-question points / time overrides (blank = round default)
