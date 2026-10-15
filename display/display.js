@@ -22,16 +22,17 @@
   function url(path) { return '../' + encodeURI(path); }
 
   // ---------- rendering ----------
+  // Question results: one tile per school, green with a check or red with a cross.
+  var LEGEND = '<div class="result-legend">' +
+    '<span class="legend-item is-correct"><span class="legend-mark">&#10003;</span>Correct</span>' +
+    '<span class="legend-item is-wrong"><span class="legend-mark">&#10007;</span>Wrong / no answer</span></div>';
+
   function statusCard(r) {
-    var cls = 'is-unscored', label = 'Not scored';
-    if (r.result === 'correct') { cls = 'is-correct'; label = 'Correct'; }
-    else if (r.result === 'incorrect') { cls = 'is-wrong'; label = 'Wrong'; }
-    else if (r.result === 'no_answer') { cls = 'is-wrong'; label = 'No answer'; }
-    else if (r.result === 'adjustment') { label = 'Adjustment'; }
-    if (r.points != null && r.result !== 'unscored') label += ' (' + (r.points > 0 ? '+' : '') + r.points + ')';
-    return '<div class="score-card ' + cls + '"><span class="score-card-school">' + esc(r.label) + '</span>' +
-      '<span class="score-card-name">' + esc(r.name) + '</span>' +
-      '<span class="score-card-status">' + esc(label) + '</span></div>';
+    var cls = 'is-unscored', mark = '';
+    if (r.result === 'correct') { cls = 'is-correct'; mark = '&#10003;'; }
+    else if (r.result === 'incorrect' || r.result === 'no_answer') { cls = 'is-wrong'; mark = '&#10007;'; }
+    return '<div class="result-tile ' + cls + '"><span class="result-tile-school">' + esc(r.label) + '</span>' +
+      '<span class="result-tile-mark">' + mark + '</span></div>';
   }
 
   function roundCard(r, i) {
@@ -82,6 +83,9 @@
       if (snap.event.logo_path) { logo.src = url(snap.event.logo_path); logo.hidden = false; } else { logo.hidden = true; }
       var render = rowRenderer();
       var html = sc.rows.map(render).join('');
+      var isGrid = rowRenderer() === statusCard;
+      list.classList.toggle('is-grid', isGrid);
+      if (isGrid && html) html = LEGEND + html;
       list.innerHTML = html || '<div class="score-card"><span class="score-card-name">No contestants yet.</span></div>';
       overlay.hidden = false;
       list.scrollTop = wasResults ? prevScroll : 0;

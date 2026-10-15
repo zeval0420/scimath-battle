@@ -46,6 +46,6 @@ $preview = !empty($_GET['preview']);
   <audio id="audio-timer"></audio>
   <?php endif; ?>
 
-<script src="display.js"></script>
+<script src="display.js?v=<?= filemtime(__DIR__ . '/display.js') ?>"></script>
 </body>
 </html>
