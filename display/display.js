@@ -165,11 +165,27 @@
     if (on && a.paused) a.play().catch(function () {});
     if (!on && !a.paused) a.pause();
   }
+  function fadeVolume(a, target) {
+    if (a.dataset.target === String(target)) return;
+    if (a.dataset.target === undefined) { a.dataset.target = String(target); a.volume = target; return; } // first call: no fade
+    a.dataset.target = String(target);
+    clearInterval(a._fade);
+    a._fade = setInterval(function () {
+      var diff = target - a.volume;
+      if (Math.abs(diff) < 0.02) { a.volume = target; clearInterval(a._fade); return; }
+      a.volume = Math.max(0, Math.min(1, a.volume + Math.sign(diff) * 0.04));
+    }, 40);
+  }
   function syncAudio() {
     if (PREVIEW || !audioReady || !snap) return;
     var au = snap.audio, onCover = snap.state.hidden || snap.state.banner;
     setSrc(aBanner, au.banner); setSrc(aGame, au.game); setSrc(aTimer, au.timer);
-    aBanner.volume = au.banner_volume / 100; aGame.volume = au.game_volume / 100;
+    aBanner.volume = au.banner_volume / 100;
+    // Background music is silent on promo slides, the answer and every results screen; it fades back up
+    // (to the configured game volume, 30% by default) once the next question is shown.
+    var ov = snap.state.overlay;
+    var quiet = !!ov || snap.state.base === 'answer';
+    fadeVolume(aGame, quiet ? 0 : au.game_volume / 100);
     play(aBanner, onCover);
     play(aGame, !onCover);
     syncTimerAudio();
