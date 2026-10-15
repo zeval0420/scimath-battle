@@ -82,6 +82,8 @@
     list.style.overflow = 'hidden';
     list.style.gap = gap + 'px';
     list.style.gridTemplateColumns = 'repeat(' + best.cols + ', minmax(0, 1fr))';
+    // legend keeps its own short row; the schools get equal fixed rows below it
+    list.style.gridTemplateRows = (legend ? 'auto ' : '') + 'repeat(' + best.rows + ', ' + Math.floor(best.h) + 'px)';
     list.style.gridAutoRows = Math.floor(best.h) + 'px';
     tiles.forEach(function (t) {
       t.style.minHeight = '0';

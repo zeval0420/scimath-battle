@@ -164,3 +164,4 @@
 .overlay.is-compact .score-list { padding-right: 0; }
 .overlay.is-compact .result-legend { font-size: 18px; gap: 24px; }
 .overlay.is-compact .legend-mark { width: 28px; height: 28px; font-size: 18px; border-radius: 8px; }
+.result-legend { align-self: start; line-height: 1; }
