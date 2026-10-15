@@ -164,6 +164,6 @@ include __DIR__ . '/../src/universal/header.php';
 
 </main>
 <?php include __DIR__ . '/../src/universal/footer.php'; ?>
-<script src="operator.js"></script>
+<script src="operator.js?v=<?= filemtime(__DIR__ . '/operator.js') ?>"></script>
 </body>
 </html>

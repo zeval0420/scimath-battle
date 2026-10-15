@@ -92,3 +92,5 @@
 @media (max-width: 960px) {
   .op-columns { grid-template-columns: 1fr; }
 }
+
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 200px; }

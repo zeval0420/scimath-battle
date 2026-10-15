@@ -278,6 +278,19 @@ try {
     $qs = questions($eid);
     $cur = find_question($qs, $s['question_id']);
 
+    // Row buttons name the question they act on: move to it first (new question = fresh timer).
+    if (in_array($action, ['show', 'timer_start', 'show_results'], true) && isset($p['question_id'])) {
+        $target = find_question($qs, (int)$p['question_id']);
+        if (!$target) throw new UserError('No such question.');
+        if ((int)$target['id'] !== (int)$s['question_id']) {
+            $s['question_id'] = (int)$target['id'];
+            $s['overlay'] = null;
+            reset_timer($s, $target);
+            $cur = $target;
+            $changed = true;
+        }
+    }
+
     switch ($action) {
         case 'state':
             break;

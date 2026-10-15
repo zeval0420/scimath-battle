@@ -71,7 +71,7 @@
     var table = $('q-table');
     // Don't rebuild while the operator is typing in a points/time box.
     if (table.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;
-    table.innerHTML = '<thead><tr><th>#</th><th>Question slide</th><th>Answer slide</th><th>Round</th><th>Points</th><th>Time limit (sec)</th></tr></thead><tbody>' +
+    table.innerHTML = '<thead><tr><th>#</th><th>Question slide</th><th>Answer slide</th><th>Round</th><th>Points</th><th>Time limit (sec)</th><th>Controls</th></tr></thead><tbody>' +
       snap.questions.map(function (r) {
         return '<tr data-qid="' + r.id + '"' + (q && r.id === q.id ? ' class="is-current"' : '') + '>' +
           '<td><b>' + r.number + '</b></td>' +
@@ -80,7 +80,13 @@
           '<td>' + esc(r.round_label) + '</td>' +
           '<td><input type="number" min="0" data-field="points" placeholder="' + (r.eff_points) + '" value="' + (r.points == null ? '' : r.points) + '"></td>' +
           '<td><input type="number" min="1" data-field="time" placeholder="' + (r.eff_time) + '" value="' + (r.time_seconds == null ? '' : r.time_seconds) + '"></td>' +
-          '</tr>';
+          '<td><div class="row-actions">' +
+          '<button class="btn btn-sm" type="button" data-act="show:question">Show question</button>' +
+          '<button class="btn btn-sm btn-primary" type="button" data-act="timer_start">Start timer</button>' +
+          '<button class="btn btn-sm" type="button" data-act="show:boards_up">Show Boards Up</button>' +
+          '<button class="btn btn-sm" type="button" data-act="show:answer">Show answer</button>' +
+          '<button class="btn btn-sm" type="button" data-act="results">Show question results</button>' +
+          '</div></td></tr>';
       }).join('') + '</tbody>';
   }
 
@@ -197,9 +203,14 @@
   });
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-toggle], [data-show], [data-show-slide], [data-result], [data-scroll], tr[data-qid]');
+    var t = e.target.closest('[data-toggle], [data-act], [data-show], [data-show-slide], [data-result], [data-scroll], tr[data-qid]');
     if (!t) return;
-    if (t.dataset.toggle) {
+    if (t.dataset.act) {
+      var qid = Number(t.closest('tr[data-qid]').dataset.qid), act = t.dataset.act;
+      if (act === 'timer_start') call('timer_start', { question_id: qid });
+      else if (act === 'results') call('show_results', { kind: 'question', question_id: qid });
+      else call('show', { base: act.split(':')[1], question_id: qid });
+    } else if (t.dataset.toggle) {
       var card = $(t.dataset.toggle);
       t.textContent = card.classList.toggle('is-collapsed') ? 'Show' : 'Hide';
     } else if (t.dataset.show) {
