@@ -208,6 +208,10 @@ try {
     if (!val('SELECT id FROM scimath_events WHERE id = ?', [$eid])) throw new UserError('Event not found.');
     run('INSERT IGNORE INTO scimath_event_settings (event_id) VALUES (?)', [$eid]);
 
+    // The acronym column used to be VARCHAR(20); widen it once (DDL commits, so do it before the transaction).
+    $len = (int)val("SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'scimath_contestants' AND COLUMN_NAME = 'acronym'");
+    if ($len > 0 && $len < 255) run('ALTER TABLE scimath_contestants MODIFY acronym VARCHAR(255) NULL DEFAULT NULL');
     $conn->begin_transaction();
     switch ($action) {
         case 'load':
@@ -271,7 +275,7 @@ try {
         case 'save_contestant':
             $name = trim((string)($p['name'] ?? '')); $acr = trim((string)($p['acronym'] ?? ''));
             if ($name === '' || mb_strlen($name) > 150) throw new UserError('Contestant name is required (max 150 characters).');
-            if (mb_strlen($acr) > 20) throw new UserError('Acronym is too long (max 20 characters).');
+            if (mb_strlen($acr) > 255) throw new UserError('Acronym is too long (max 255 characters).');
             $acr = $acr === '' ? null : $acr;
             if ($action === 'add_contestant') {
                 $o = (int)val('SELECT COALESCE(MAX(display_order), 0) + 1 FROM scimath_contestants WHERE event_id = ?', [$eid]);
@@ -301,7 +305,7 @@ try {
                 $name = trim((string)($r['name'] ?? '')); $acr = trim((string)($r['acronym'] ?? ''));
                 $line = $i + 1;
                 if ($name === '' || mb_strlen($name) > 150) throw new UserError("Row $line: a name is required (max 150 characters).");
-                if (mb_strlen($acr) > 20) throw new UserError("Row $line: acronym is too long (max 20 characters).");
+                if (mb_strlen($acr) > 255) throw new UserError("Row $line: acronym is too long (max 255 characters).");
                 if (isset($have[mb_strtolower($name)])) continue; // already added
                 $have[mb_strtolower($name)] = true;
                 run('INSERT INTO scimath_contestants (event_id, name, acronym, display_order) VALUES (?, ?, ?, ?)',

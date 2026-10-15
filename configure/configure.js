@@ -193,12 +193,12 @@
     $('body-contestants').innerHTML =
       (cs.length ? cs.map(function (c) {
         return '<div class="list-row" data-cid="' + c.id + '">' +
-          '<input class="input" type="text" maxlength="20" placeholder="Acronym" data-act="c-field" data-prop="acronym" value="' + esc(c.acronym) + '">' +
+          '<input class="input" type="text" maxlength="255" placeholder="Acronym" data-act="c-field" data-prop="acronym" value="' + esc(c.acronym) + '">' +
           '<input class="input" type="text" maxlength="150" placeholder="Name" data-act="c-field" data-prop="name" value="' + esc(c.name) + '">' +
           '<button class="btn btn-sm btn-danger" type="button" data-act="c-del">Delete</button></div>';
       }).join('') : '<div class="empty">No contestants yet.</div>') +
       '<form class="row-form" id="c-add-form">' +
-      '<div class="field"><label class="field-label" for="c-acr">Acronym</label><input class="input" id="c-acr" maxlength="20"></div>' +
+      '<div class="field"><label class="field-label" for="c-acr">Acronym</label><input class="input" id="c-acr" maxlength="255"></div>' +
       '<div class="field"><label class="field-label" for="c-name">Name</label><input class="input" id="c-name" maxlength="150" required></div>' +
       '<button class="btn btn-primary" type="submit">Add contestant</button></form>' +
       '<div class="field"><label class="field-label" for="c-csv">Or import from a CSV file</label>' +
