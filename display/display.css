@@ -155,3 +155,12 @@
   grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
 }
 .score-card.is-ranked .score-card-part { min-width: 0; }
+
+/* Question results: tighter header so the 8 x 5 grid has the room */
+.overlay.is-compact { padding: 14px 32px 18px; gap: 8px; }
+.overlay.is-compact .overlay-top { gap: 16px; }
+.overlay.is-compact .overlay-logo { height: 56px; max-width: 160px; }
+.overlay.is-compact .overlay-title { font-size: 34px; }
+.overlay.is-compact .score-list { padding-right: 0; }
+.overlay.is-compact .result-legend { font-size: 18px; gap: 24px; }
+.overlay.is-compact .legend-mark { width: 28px; height: 28px; font-size: 18px; border-radius: 8px; }

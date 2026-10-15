@@ -125,6 +125,7 @@
       if (isGrid && html) html = LEGEND + html;
       list.innerHTML = html || '<div class="score-card"><span class="score-card-name">No contestants yet.</span></div>';
       overlay.hidden = false;
+      overlay.classList.toggle('is-compact', isGrid);
       if (isGrid) fitGrid(); else list.style.cssText = '';
       list.scrollTop = wasResults ? prevScroll : 0;
     }
