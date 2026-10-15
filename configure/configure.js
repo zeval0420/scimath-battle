@@ -80,7 +80,7 @@
       return '<div class="panel"><h3>' + title + '</h3>' +
         (path ? '<audio controls preload="none" src="' + url(path) + '"></audio><span class="hint">' + esc(fileName(path)) + '</span>'
               : '<div class="preview-empty">Not set</div>') +
-        '<input class="file-input" type="file" accept="audio/*" data-act="upload" data-key="' + key + '">' +
+        '<input class="file-input" type="file" accept="audio/*,.mp3,.wav,.ogg,.oga,.opus,.m4a,.aac,.flac,.weba,.webm,.mp4" data-act="upload" data-key="' + key + '">' +
         '<span class="field-hint">' + hint + '</span>' +
         (volKey ? '<div class="field"><label class="field-label">Volume: <span id="vol-' + volKey + '">' + vol + '</span>%</label>' +
           '<input type="range" min="0" max="100" value="' + vol + '" data-act="volume" data-key="' + volKey + '"></div>' : '') +
