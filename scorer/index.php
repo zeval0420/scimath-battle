@@ -54,6 +54,7 @@ $payload = [
     .table thead th[data-q] { cursor: pointer; }
     .col-rank { background: var(--surface-2); font-weight: 700; }
     .scorer-name { width: 160px; }
+    .school-no { display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 8px; margin-right: 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 15px; font-weight: 800; vertical-align: middle; }
   </style>
 </head>
 <body class="app-body">

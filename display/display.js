@@ -92,7 +92,7 @@
       t.querySelector('.result-tile-school').style.fontSize = font + 'px';
       t.querySelector('.result-tile-mark').style.fontSize = (font * 1.15) + 'px';
       t.querySelector('.result-tile-mark').style.minHeight = '0';
-      t.querySelector('.result-tile-no').style.fontSize = Math.max(9, font * 0.6) + 'px';
+      t.querySelector('.result-tile-no').style.fontSize = Math.max(12, font * 1.1) + 'px';
     });
   }
   window.addEventListener('resize', fitGrid);

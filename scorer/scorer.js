@@ -117,7 +117,7 @@
           '" type="button" data-state="' + state + '">' + label + '</button>';
       }
       return '<div class="card card-row" data-contestant="' + c.id + '">' +
-        '<span class="card-row-label">' + esc(c.label) +
+        '<span class="school-no">' + c.no + '</span><span class="card-row-label">' + esc(c.label) +
         (c.name !== c.label ? '<span class="team-name">' + esc(c.name) + '</span>' : '') + '</span>' +
         '<span class="scored-by">' + (s && s.by ? 'by ' + esc(s.by) : '') + '</span>' +
         '<div class="btn-group">' +
@@ -206,7 +206,7 @@
     html += '</tr></thead><tbody>';
 
     contestants.forEach(function (c, i) {
-      html += '<tr><th class="col-sticky" scope="row" title="' + esc(c.name) + '">' + esc(c.label) + '</th>';
+      html += '<tr><th class="col-sticky" scope="row" title="' + esc(c.name) + '"><span class="school-no">' + c.no + '</span> ' + esc(c.label) + '</th>';
       if (hasStart) html += '<td>' + c.start + '</td>';
       questions.forEach(function (q) {
         var s = scores[key(q.id, c.id)];

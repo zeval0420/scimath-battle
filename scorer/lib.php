@@ -61,6 +61,7 @@ function load_contestants(mysqli $conn, int $eventId): array
     foreach ($stmt->get_result() as $r) {
         $out[] = [
             'id'      => (int)$r['id'],
+            'no'      => count($out) + 1, // school number = position in the configured order
             'label'   => $r['acronym'] ?: ($r['team_code'] ?: $r['name']),
             'name'    => $r['name'],
             'start'   => (int)$r['starting_score'],
