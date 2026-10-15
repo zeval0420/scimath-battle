@@ -48,7 +48,7 @@ $numRow   = ['School'];
 if ($hasStart) { $roundRow[] = ''; $numRow[] = 'Start'; }
 foreach ($questions as $q) {
     $roundRow[] = ROUND_LABELS[$q['round']];
-    $numRow[]   = 'Q' . $q['number'] . ' (' . $q['points'] . ' pt' . ($q['points'] === 1 ? '' : 's') . ')';
+    $numRow[]   = $q['name'] . ' (' . $q['points'] . ' pt' . ($q['points'] === 1 ? '' : 's') . ')';
 }
 $roundRow[] = ''; $numRow[] = 'Total';
 $roundRow[] = ''; $numRow[] = 'Rank';

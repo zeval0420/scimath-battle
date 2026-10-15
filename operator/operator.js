@@ -62,7 +62,7 @@
 
   function renderQuestions() {
     var q = snap.question;
-    $('q-number').textContent = q ? 'Q' + q.number + ' / ' + snap.question_count : 'No questions';
+    $('q-number').textContent = q ? q.name + ' (' + (snap.question_index + 1) + ' of ' + snap.question_count + ')' : 'No questions';
     $('q-info').textContent = q ? q.round_label + ' round - ' + q.eff_points + ' pts - ' + q.eff_time + ' s' : '';
     $('prev-q').disabled = !q || snap.question_index <= 0;
     $('next-q').disabled = !q || snap.question_index >= snap.question_count - 1;
@@ -75,7 +75,7 @@
       snap.questions.map(function (r) {
         var cur = q && r.id === q.id;
         return '<tr class="q-top' + (cur ? ' is-current' : '') + '" data-qid="' + r.id + '">' +
-          '<td><b>' + r.number + '</b></td>' +
+          '<td><b>' + esc(r.name) + '</b></td>' +
           '<td class="preview"><div class="slide-thumb"><img loading="lazy" src="' + url(r.image_path) + '" alt=""></div></td>' +
           '<td class="preview"><div class="slide-thumb">' + (r.answer_image_path ? '<img loading="lazy" src="' + url(r.answer_image_path) + '" alt="">' : 'No answer slide') + '</div></td>' +
           '<td>' + esc(r.round_label) + '</td>' +
@@ -134,7 +134,7 @@
         var id = c.participants[i] != null ? Number(c.participants[i]) : 0;
         rows += slotRow(q, c.participants.map(Number), id, id && c.winners.indexOf(id) !== -1, i >= 2);
       }
-      return '<div class="stack clincher-q" data-clincher-q="' + q.id + '" style="gap:8px"><b>Clincher Q' + q.number + '</b>' +
+      return '<div class="stack clincher-q" data-clincher-q="' + q.id + '" style="gap:8px"><b>' + esc(q.name) + '</b>' +
         rows + '<div><button class="btn btn-sm" type="button" data-clincher-act="add">+ Add school</button></div></div>';
     }).join('') + addBtn;
   }

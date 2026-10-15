@@ -57,7 +57,10 @@ function questions(int $eid): array
     $d = round_defaults($eid);
     $qs = rows('SELECT id, question_number AS number, round, image_path, answer_image_path, points, time_seconds
                 FROM scimath_questions WHERE event_id = ? ORDER BY display_order, id', [$eid]);
+    $seen = [];
     foreach ($qs as &$q) {
+        $q['rn']   = $seen[$q['round']] = ($seen[$q['round']] ?? 0) + 1; // number within its round
+        $q['name'] = ROUND_LABEL[$q['round']] . ' ' . $q['rn'];
         $q['eff_points'] = (int)($q['points'] ?? $d[$q['round']]['points']);
         $q['eff_time']   = (int)($q['time_seconds'] ?? $d[$q['round']]['time']);
         $q['round_label'] = ROUND_LABEL[$q['round']];
@@ -152,7 +155,7 @@ function result_data(int $eid, array $overlay, array $qs): array
                 $win = in_array((int)$c['id'], $cl['winners'], true);
                 $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => $win ? 'correct' : 'incorrect', 'points' => null];
             }
-            return ['kind' => 'question', 'title' => 'Clincher ' . $q['number'] . ' Results', 'rows' => $list];
+            return ['kind' => 'question', 'title' => $q['name'] . ' Results', 'rows' => $list];
         }
         // Teams appear in the order their answers were scored; unscored teams follow in display order.
         $byId = [];
@@ -167,7 +170,7 @@ function result_data(int $eid, array $overlay, array $qs): array
         foreach ($byId as $c) {
             $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => 'unscored', 'points' => null];
         }
-        return ['kind' => 'question', 'title' => $q ? 'Question ' . $q['number'] . ' Results' : 'Question Results', 'rows' => $list];
+        return ['kind' => 'question', 'title' => $q ? $q['name'] . ' Results' : 'Question Results', 'rows' => $list];
     }
 
     if ($kind === 'round') {
@@ -183,7 +186,7 @@ function result_data(int $eid, array $overlay, array $qs): array
                         $pts = (int)$e['points_awarded']; $res = $e['result']; $total += $pts;
                     }
                 }
-                $cells[] = ['n' => (int)$q['number'], 'points' => $pts, 'result' => $res];
+                $cells[] = ['n' => (int)$q['rn'], 'points' => $pts, 'result' => $res];
             }
             $list[] = ['label' => $label($c), 'name' => $c['name'], 'cells' => $cells, 'total' => $total];
         }
@@ -202,7 +205,7 @@ function result_data(int $eid, array $overlay, array $qs): array
     }
     // Tied totals are settled by clincher wins.
     usort($list, fn($a, $b) => [$b['total'], $b['wins']] <=> [$a['total'], $a['wins']]);
-    return ['kind' => 'final', 'title' => 'Final Results', 'rows' => $list];
+    return ['kind' => 'final', 'title' => 'Overall Results', 'rows' => $list];
 }
 
 // ---------------------------------------------------------------- snapshot

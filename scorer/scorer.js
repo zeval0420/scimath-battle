@@ -81,7 +81,7 @@
       if (!inRound.length) return;
       html += '<optgroup label="' + esc(DATA.labels[round]) + '">';
       inRound.forEach(function (q) {
-        html += '<option value="' + q.id + '">Question ' + q.number + ' (' + q.points + ' pt' + (q.points === 1 ? '' : 's') + ')</option>';
+        html += '<option value="' + q.id + '">' + esc(q.name) + ' (' + q.points + ' pt' + (q.points === 1 ? '' : 's') + ')</option>';
       });
       html += '</optgroup>';
     });

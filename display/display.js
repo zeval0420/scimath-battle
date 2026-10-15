@@ -40,7 +40,7 @@
       '<span class="score-card-school">' + esc(r.label) + '</span>' +
       '<div class="score-card-breakdown is-wrap">' + r.cells.map(function (c) {
         var cls = c.result === 'correct' ? ' is-correct' : (c.result === 'incorrect' || c.result === 'no_answer' ? ' is-wrong' : '');
-        return '<div class="score-card-part part-q' + cls + '"><span class="score-card-part-label">Q' + c.n + '</span>' +
+        return '<div class="score-card-part part-q' + cls + '"><span class="score-card-part-label">' + c.n + '</span>' +
           '<span class="score-card-part-value">' + (c.points == null ? '-' : c.points) + '</span></div>';
       }).join('') + '</div>' +
       '<span class="score-card-final">' + r.total + '</span></div>';
