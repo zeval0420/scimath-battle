@@ -126,8 +126,20 @@
     aBanner.volume = au.banner_volume / 100; aGame.volume = au.game_volume / 100;
     play(aBanner, onCover);
     play(aGame, !onCover);
-    if (snap.timer.run_id !== timerRun) { timerRun = snap.timer.run_id; aTimer.currentTime = 0; }
-    play(aTimer, snap.timer.running);
+    syncTimerAudio();
+  }
+
+  // The timer sound plays only for the last 5 seconds of a running countdown.
+  function syncTimerAudio() {
+    if (PREVIEW || !audioReady || !snap) return;
+    var t = snap.timer;
+    if (t.run_id !== timerRun) { timerRun = t.run_id; aTimer.currentTime = 0; }
+    if (t.ended && !t.running) return; // time is up: let the sound finish on its own
+    var ms = t.running ? t.remaining_ms - (performance.now() - recvAt) : t.remaining_ms;
+    var onCover = snap.state.hidden || snap.state.banner;
+    var inFinal = t.running && ms > 0 && ms <= 5000 && !onCover;
+    if (!t.running && ms > 5000) aTimer.currentTime = 0; // reset or extended: start over next time
+    play(aTimer, inFinal);
   }
 
   // ---------- scroll sync ----------
@@ -187,6 +199,6 @@
     });
   }
 
-  setInterval(renderTimer, 200);
+  setInterval(function () { renderTimer(); syncTimerAudio(); }, 200);
   poll();
 })();

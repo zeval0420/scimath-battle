@@ -879,5 +879,9 @@ hr {
 
 .score-card-part { border-radius: 18px; }
 .col-rank { text-align: center; }
+/* Question results are not ranked: no podium colours on the left edge. */
+.score-list > .score-card.is-correct:nth-child(-n+3) { border-left-color: #1c6b3a; }
+.score-list > .score-card.is-wrong:nth-child(-n+3) { border-left-color: #7d150f; }
+.score-list > .score-card.is-unscored:nth-child(-n+3) { border-left-color: #9db4e8; }
 .score-card.is-correct { border-left-color: #1c6b3a; }
 .score-card.is-wrong { border-left-color: #7d150f; }
