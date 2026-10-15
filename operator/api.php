@@ -211,7 +211,8 @@ function result_data(int $eid, array $overlay, array $qs): array
 
     $cl = load_clincher($GLOBALS['conn'], $eid);
     $wins = clincher_wins(array_filter($cl, fn($c) => empty($c['rank']))); // rounds without a rank only break ties
-    $locked = clincher_locked($cl);
+    $locked = $kind === 'final' ? clincher_locked($cl) : [];
+    if ($kind === 'overall') $wins = [];
     $list = [];
     foreach ($cons as $c) {
         $parts = array_fill_keys(SCORED_ROUNDS, 0);
@@ -239,7 +240,16 @@ function result_data(int $eid, array $overlay, array $qs): array
     }
     $list = array_merge($fixed, $pool);
     usort($list, fn($a, $b) => $a['rank'] <=> $b['rank']);
-    return ['kind' => 'final', 'title' => 'Overall Results', 'rows' => $list];
+
+    // Optional "top N": keep teams tied with the last one shown.
+    $limit = (int)($overlay['limit'] ?? 0);
+    $title = $kind === 'final' ? 'Final Results' : 'Overall Results';
+    if ($limit > 0 && count($list) > $limit) {
+        $edge = $list[$limit - 1]['rank'];
+        $list = array_values(array_filter($list, fn($r) => $r['rank'] <= $edge));
+        $title .= ' - Top ' . $limit;
+    }
+    return ['kind' => $kind, 'title' => $title, 'rows' => $list];
 }
 
 // ---------------------------------------------------------------- snapshot
@@ -384,9 +394,10 @@ try {
 
         case 'show_results':
             $kind = $p['kind'] ?? '';
-            if (!in_array($kind, ['question', 'round', 'final'], true)) throw new UserError('Invalid results type.');
+            if (!in_array($kind, ['question', 'round', 'overall', 'final'], true)) throw new UserError('Invalid results type.');
             $round = in_array($p['round'] ?? '', SCORED_ROUNDS, true) ? $p['round'] : (in_array($cur['round'] ?? '', SCORED_ROUNDS, true) ? $cur['round'] : 'easy');
-            $s['overlay'] = ['type' => 'results', 'kind' => $kind, 'question_id' => $s['question_id'], 'round' => $round];
+            $limit = max(0, min(50, (int)($p['limit'] ?? 0)));
+            $s['overlay'] = ['type' => 'results', 'kind' => $kind, 'question_id' => $s['question_id'], 'round' => $round, 'limit' => $limit];
             $s['hidden'] = false; $s['banner'] = false; $s['scroll'] = 0; $s['scroll_by'] = 'operator-reset';
             $changed = true;
             break;

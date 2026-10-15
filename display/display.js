@@ -95,7 +95,7 @@
   // sc.kind is 'results' for the screen; the results type is carried in snap.state.overlay.kind
   function rowRenderer() {
     var k = snap.state.overlay && snap.state.overlay.kind;
-    return k === 'round' ? roundCard : (k === 'final' ? finalCard : statusCard);
+    return k === 'round' ? roundCard : ((k === 'final' || k === 'overall') ? finalCard : statusCard);
   }
 
   function renderTimer() {

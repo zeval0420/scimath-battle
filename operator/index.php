@@ -139,7 +139,14 @@ include __DIR__ . '/../src/universal/header.php';
           <select class="dropdown" id="result-round"></select>
           <button class="btn btn-primary" type="button" data-result="round">Show round results</button>
         </div>
-        <button class="btn btn-primary" type="button" data-result="final">Show final results</button>
+        <div class="row">
+          <select class="dropdown" id="result-limit" title="How many teams to show in the overall / final results">
+            <option value="0">All teams</option><option value="3">Top 3</option><option value="5">Top 5</option>
+            <option value="10">Top 10</option><option value="15">Top 15</option>
+          </select>
+          <button class="btn btn-primary" type="button" data-result="overall">Show overall results</button>
+          <button class="btn btn-primary" type="button" data-result="final">Show final results</button>
+        </div>
         <button class="btn" type="button" id="results-clear">Hide results</button>
       </div>
       <div class="row">

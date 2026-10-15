@@ -248,7 +248,7 @@
     } else if (t.dataset.showSlide) {
       call('show_promo', { id: Number(t.dataset.showSlide) });
     } else if (t.dataset.result) {
-      call('show_results', { kind: t.dataset.result, round: $('result-round').value });
+      call('show_results', { kind: t.dataset.result, round: $('result-round').value, limit: Number($('result-limit').value) || 0 });
     } else if (t.dataset.scroll) {
       var cur = snap.state.scroll, to = cur;
       if (t.dataset.scroll === 'top') to = 0;
