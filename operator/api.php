@@ -171,18 +171,13 @@ function result_data(int $eid, array $overlay, array $qs): array
             }
             return ['kind' => 'question', 'title' => $q['name'] . ' Results', 'rows' => $list];
         }
-        // Teams appear in the order their answers were scored; unscored teams follow in display order.
-        $byId = [];
-        foreach ($cons as $c) $byId[(int)$c['id']] = $c;
+        // Fixed order (the contestants' display order): scoring or changing a score never moves a card.
+        $by = [];
+        foreach ($entries as $e) if ((int)$e['question_id'] === (int)($q['id'] ?? 0)) $by[(int)$e['contestant_id']] = $e;
         $list = [];
-        foreach ($entries as $e) {
-            $cid = (int)$e['contestant_id'];
-            if ((int)$e['question_id'] !== (int)($q['id'] ?? 0) || !isset($byId[$cid])) continue;
-            $c = $byId[$cid]; unset($byId[$cid]);
-            $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => $e['result'], 'points' => (int)$e['points_awarded']];
-        }
-        foreach ($byId as $c) {
-            $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => 'unscored', 'points' => null];
+        foreach ($cons as $c) {
+            $e = $by[(int)$c['id']] ?? null;
+            $list[] = ['label' => $label($c), 'name' => $c['name'], 'result' => $e['result'] ?? 'unscored', 'points' => $e ? (int)$e['points_awarded'] : null];
         }
         return ['kind' => 'question', 'title' => $q ? $q['name'] . ' Results' : 'Question Results', 'rows' => $list];
     }
