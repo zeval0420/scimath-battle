@@ -46,15 +46,17 @@
       '<span class="score-card-final">' + r.total + '</span></div>';
   }
 
+  var finalHasStart = false; // set per screen so every row has the same columns
+
   function finalCard(r, i) {
     var parts = ['easy', 'medium', 'hard'].map(function (k) {
       return '<div class="score-card-part part-' + ROUND_CLASS[k] + '"><span class="score-card-part-label">' + ROUND_LABEL[k] +
         '</span><span class="score-card-part-value">' + r.parts[k] + '</span></div>';
     }).join('');
-    if (r.start) parts = '<div class="score-card-part part-start"><span class="score-card-part-label">Start</span><span class="score-card-part-value">' + r.start + '</span></div>' + parts;
-    return '<div class="score-card"><span class="score-card-rank">' + r.rank + '</span>' +
+    if (finalHasStart) parts = '<div class="score-card-part part-start"><span class="score-card-part-label">Start</span><span class="score-card-part-value">' + r.start + '</span></div>' + parts;
+    return '<div class="score-card is-ranked"><span class="score-card-rank">' + r.rank + '</span>' +
       '<span class="score-card-school">' + esc(r.label) + '</span>' +
-      '<div class="score-card-breakdown">' + parts + '</div>' +
+      '<div class="score-card-breakdown" style="--cols:' + (finalHasStart ? 4 : 3) + '">' + parts + '</div>' +
       '<span class="score-card-final">' + r.total + '</span></div>';
   }
 
@@ -122,6 +124,7 @@
       document.getElementById('overlay-title').textContent = sc.title;
       var logo = document.getElementById('overlay-logo');
       if (snap.event.logo_path) { logo.src = url(snap.event.logo_path); logo.hidden = false; } else { logo.hidden = true; }
+      finalHasStart = sc.rows.some(function (r) { return r.start; });
       var render = rowRenderer();
       var html = sc.rows.map(render).join('');
       var isGrid = rowRenderer() === statusCard;
