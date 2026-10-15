@@ -209,18 +209,36 @@ function result_data(int $eid, array $overlay, array $qs): array
         return ['kind' => 'round', 'round' => $round, 'title' => ROUND_LABEL[$round] . ' Round Results', 'rows' => $list];
     }
 
-    $wins = clincher_wins(load_clincher($GLOBALS['conn'], $eid));
+    $cl = load_clincher($GLOBALS['conn'], $eid);
+    $wins = clincher_wins(array_filter($cl, fn($c) => empty($c['rank']))); // rounds without a rank only break ties
+    $locked = clincher_locked($cl);
     $list = [];
     foreach ($cons as $c) {
         $parts = array_fill_keys(SCORED_ROUNDS, 0);
         foreach ($entries as $e) if ((int)$e['contestant_id'] === (int)$c['id'] && isset($parts[$e['round']])) $parts[$e['round']] += (int)$e['points_awarded'];
-        $list[] = ['label' => $label($c), 'name' => $c['name'], 'parts' => $parts,
+        $list[] = ['id' => (int)$c['id'], 'label' => $label($c), 'name' => $c['name'], 'parts' => $parts,
                    'start' => (int)$c['starting_score'], 'total' => (int)$c['starting_score'] + array_sum($parts),
                    'wins' => $wins[(int)$c['id']] ?? 0];
     }
-    // Tied totals are settled by clincher wins.
-    usort($list, fn($a, $b) => [$b['total'], $b['wins']] <=> [$a['total'], $a['wins']]);
-    $list = assign_ranks($list, fn($r) => [$r['total'], $r['wins']]); // still tied after the clincher = shared place
+
+    // A clincher winner takes the rank that round was played for. Everyone else shares the remaining
+    // places in score order; teams still tied (same total, same clincher wins) get the average of their places.
+    $pool = array_values(array_filter($list, fn($r) => !isset($locked[$r['id']])));
+    $fixed = array_values(array_filter($list, fn($r) => isset($locked[$r['id']])));
+    foreach ($fixed as &$r) $r['rank'] = $locked[$r['id']];
+    unset($r);
+    usort($pool, fn($a, $b) => [$b['total'], $b['wins']] <=> [$a['total'], $a['wins']]);
+    $places = array_values(array_diff(range(1, count($list)), array_values($locked)));
+    for ($i = 0; $i < count($pool); ) {
+        $j = $i;
+        while ($j + 1 < count($pool) && [$pool[$j + 1]['total'], $pool[$j + 1]['wins']] === [$pool[$i]['total'], $pool[$i]['wins']]) $j++;
+        $span = array_map(fn($k) => $places[$k] ?? count($list), range($i, $j));
+        $avg = array_sum($span) / count($span);
+        for ($k = $i; $k <= $j; $k++) $pool[$k]['rank'] = $avg;
+        $i = $j + 1;
+    }
+    $list = array_merge($fixed, $pool);
+    usort($list, fn($a, $b) => $a['rank'] <=> $b['rank']);
     return ['kind' => 'final', 'title' => 'Overall Results', 'rows' => $list];
 }
 
@@ -462,6 +480,11 @@ try {
             $wins = array_values(array_unique(array_map('intval', (array)($p['winners'] ?? []))));
             if (array_diff($parts, $valid)) throw new UserError('Unknown team selected.');
             if (array_diff($wins, $parts)) throw new UserError('A winner must be one of the participants.');
+            if (array_key_exists('rank', $p)) {
+                $rk = (int)$p['rank'];
+                if ($rk > 0) run('INSERT INTO scimath_clincher_rounds (question_id, rank_for) VALUES (?, ?) ON DUPLICATE KEY UPDATE rank_for = VALUES(rank_for)', [$q['id'], $rk]);
+                else run('DELETE FROM scimath_clincher_rounds WHERE question_id = ?', [$q['id']]);
+            }
             run('DELETE FROM scimath_clincher_entries WHERE question_id = ?', [$q['id']]);
             foreach ($parts as $cid) {
                 run('INSERT INTO scimath_clincher_entries (question_id, contestant_id, is_winner) VALUES (?, ?, ?)',

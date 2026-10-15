@@ -17,6 +17,12 @@ function ensure_clincher_table(mysqli $conn): void
             CONSTRAINT fk_clincher_question FOREIGN KEY (question_id) REFERENCES scimath_questions (id) ON DELETE CASCADE,
             CONSTRAINT fk_clincher_contestant FOREIGN KEY (contestant_id) REFERENCES scimath_contestants (id) ON DELETE CASCADE
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+    // The place each clincher round is played for; its winner is locked to that rank.
+    $conn->query('CREATE TABLE IF NOT EXISTS scimath_clincher_rounds (
+            question_id INT UNSIGNED NOT NULL PRIMARY KEY,
+            rank_for SMALLINT UNSIGNED NOT NULL,
+            CONSTRAINT fk_clincher_round_question FOREIGN KEY (question_id) REFERENCES scimath_questions (id) ON DELETE CASCADE
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
 }
 
 /** [question_id => ['participants' => [contestant ids], 'winners' => [contestant ids]]] for the event. */
@@ -35,11 +41,34 @@ function load_clincher(mysqli $conn, int $eventId): array
     $out = [];
     foreach ($stmt->get_result() as $r) {
         $qid = (int)$r['question_id'];
-        $out[$qid] ??= ['participants' => [], 'winners' => []];
+        $out[$qid] ??= ['participants' => [], 'winners' => [], 'rank' => null];
         $out[$qid]['participants'][] = (int)$r['contestant_id'];
         if ($r['is_winner']) $out[$qid]['winners'][] = (int)$r['contestant_id'];
     }
+
+    $stmt = $conn->prepare(
+        'SELECT r.question_id, r.rank_for FROM scimath_clincher_rounds r
+         JOIN scimath_questions q ON q.id = r.question_id WHERE q.event_id = ?'
+    );
+    $stmt->bind_param('i', $eventId);
+    $stmt->execute();
+    foreach ($stmt->get_result() as $r) {
+        $qid = (int)$r['question_id'];
+        $out[$qid] ??= ['participants' => [], 'winners' => [], 'rank' => null];
+        $out[$qid]['rank'] = (int)$r['rank_for'];
+    }
     return $out;
+}
+
+/** contestant_id => rank locked in by winning a clincher round that was played for that rank. */
+function clincher_locked(array $clincher): array
+{
+    $locked = [];
+    foreach ($clincher as $c) {
+        if (empty($c['rank'])) continue;
+        foreach ($c['winners'] as $id) $locked[$id] = (int)$c['rank'];
+    }
+    return $locked;
 }
 
 /** contestant_id => number of clincher rounds won; used to break ties in the rankings. */

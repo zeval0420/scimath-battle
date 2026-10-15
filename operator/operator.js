@@ -134,7 +134,12 @@
         var id = c.participants[i] != null ? Number(c.participants[i]) : 0;
         rows += slotRow(q, c.participants.map(Number), id, id && c.winners.indexOf(id) !== -1, i >= 2);
       }
+      var rankOpts = '<option value="">Not set</option>' + snap.contestants.map(function (_, k) {
+        return '<option value="' + (k + 1) + '"' + (Number(c.rank) === k + 1 ? ' selected' : '') + '>Rank ' + (k + 1) + '</option>';
+      }).join('');
       return '<div class="stack clincher-q" data-clincher-q="' + q.id + '" style="gap:8px"><b>' + esc(q.name) + '</b>' +
+        '<div class="row"><span class="field-label">Playing for</span><select class="dropdown" data-clincher="rank">' + rankOpts + '</select>' +
+        '<span class="hint">The winner is locked to this rank.</span></div>' +
         rows + '<div><button class="btn btn-sm" type="button" data-clincher-act="add">+ Add school</button></div></div>';
     }).join('') + addBtn;
   }
@@ -264,7 +269,8 @@
       if (slot.querySelector('[data-clincher=win]').checked) winners.push(id);
     });
     busy = true;
-    return call('save_clincher', { question_id: Number(wrap.dataset.clincherQ), participants: participants, winners: winners })
+    return call('save_clincher', { question_id: Number(wrap.dataset.clincherQ), participants: participants, winners: winners,
+                                   rank: Number(wrap.querySelector('[data-clincher=rank]').value) || 0 })
       .then(function () { busy = false; });
   }
 
