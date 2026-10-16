@@ -121,6 +121,11 @@ include __DIR__ . '/../src/universal/header.php';
 
       <div class="stack" id="team-cards"></div>
 
+      <div class="row">
+        <button class="btn" type="button" id="reset-q">Reset this question</button>
+        <button class="btn btn-wrong" type="button" id="reset-event">Reset all scores in event</button>
+      </div>
+
       <?php endif; ?>
     </div>
   </section>

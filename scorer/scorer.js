@@ -167,6 +167,50 @@
       });
   });
 
+  // ---------- Resetting scores ----------
+  function resetScores(action, message) {
+    if (!confirm(message)) return;
+    if (action === 'reset_question') {
+      questions.length && Object.keys(scores).forEach(function (k) {
+        if (k.indexOf(currentId + '_') === 0) delete scores[k];
+      });
+    } else {
+      scores = {};
+    }
+    renderCards();
+    renderTable();
+
+    pending++;
+    fetch('api.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: DATA.event, question: currentId, action: action })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) throw new Error(d.error || 'error');
+        pending--;
+        lastServerJson = '';
+        if (pending === 0) applyScores(d.scores, d.clincher);
+        setStatus(true, 'Reset ' + new Date().toLocaleTimeString());
+      })
+      .catch(function (err) {
+        pending--;
+        lastServerJson = '';
+        setStatus(false, 'Reset failed - ' + err.message);
+        poll();
+      });
+  }
+
+  var resetQ = document.getElementById('reset-q');
+  var resetEvent = document.getElementById('reset-event');
+  if (resetQ) resetQ.addEventListener('click', function () {
+    resetScores('reset_question', 'Clear all scores for "' + qById[currentId].name + '"? This cannot be undone.');
+  });
+  if (resetEvent) resetEvent.addEventListener('click', function () {
+    resetScores('reset_event', 'Clear ALL scores for every question in this event? This cannot be undone.');
+  });
+
   // ---------- Tabulation ----------
   function renderTable() {
     var groups = DATA.rounds.map(function (round) {

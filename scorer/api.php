@@ -34,6 +34,21 @@ $result     = (string)($in['result'] ?? '');
 $scorer     = mb_substr(trim((string)($in['scorer'] ?? '')), 0, 100);
 $scorer     = $scorer === '' ? null : $scorer;
 
+$action = (string)($in['action'] ?? '');
+if ($action === 'reset_question' || $action === 'reset_event') {
+    if (!load_event($conn, $eventId)) fail(404, 'Event not found.');
+    if ($action === 'reset_question') {
+        $stmt = $conn->prepare("DELETE FROM scimath_score_entries WHERE event_id = ? AND question_id = ?");
+        $stmt->bind_param('ii', $eventId, $questionId);
+    } else {
+        $stmt = $conn->prepare("DELETE FROM scimath_score_entries WHERE event_id = ?");
+        $stmt->bind_param('i', $eventId);
+    }
+    if (!$stmt->execute()) fail(500, 'Could not reset the scores.');
+    echo json_encode(['ok' => true, 'scores' => load_scores($conn, $eventId), 'clincher' => (object)load_clincher($conn, $eventId)]);
+    exit;
+}
+
 if (!in_array($result, ['correct', 'incorrect', 'no_answer', 'clear'], true)) fail(400, 'Invalid result.');
 $event = load_event($conn, $eventId);
 if (!$event) fail(404, 'Event not found.');
