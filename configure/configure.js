@@ -59,6 +59,18 @@
   }
 
   // ---------- sections ----------
+  function renderDetails() {
+    var ev = state.event;
+    $('event-title').textContent = ev.name;
+    document.title = 'Configure - ' + ev.name;
+    $('body-details').innerHTML =
+      '<form class="row-form" id="details-form">' +
+      '<div class="field"><label class="field-label" for="ev-name">Event name</label><input class="input" id="ev-name" maxlength="150" required value="' + esc(ev.name) + '"></div>' +
+      '<div class="field"><label class="field-label" for="ev-sub">Subtitle</label><input class="input" id="ev-sub" maxlength="255" value="' + esc(ev.subtitle) + '"></div>' +
+      '<div class="field"><label class="field-label" for="ev-date">Event date</label><input class="input" type="date" id="ev-date" value="' + esc(ev.event_date) + '"></div>' +
+      '<button class="btn btn-primary" type="submit">Save details</button></form>';
+  }
+
   function renderBranding() {
     function panel(key, title, path, hint) {
       return '<div class="panel"><h3>' + title + '</h3>' +
@@ -252,6 +264,7 @@
   }
 
   function render() {
+    renderDetails();
     renderBranding();
     renderAudio();
     renderRounds();
@@ -370,6 +383,11 @@
   });
 
   document.addEventListener('submit', function (e) {
+    if (e.target.id === 'details-form') {
+      e.preventDefault();
+      call('save_details', { name: $('ev-name').value, subtitle: $('ev-sub').value, event_date: $('ev-date').value });
+      return;
+    }
     if (e.target.id !== 'c-add-form') return;
     e.preventDefault();
     call('add_contestant', { acronym: $('c-acr').value, name: $('c-name').value });

@@ -17,7 +17,8 @@ if (!$event) {
 function h($v) { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
 $sections = [
-    'branding'    => 'Logo and cover slide',
+    'details'     => 'Event details',
+    'branding'   => 'Logo and cover slide',
     'audio'       => 'Audio',
     'rounds'      => 'Round defaults',
     'slides'      => 'Slide classification',
@@ -54,7 +55,7 @@ include __DIR__ . '/../src/universal/header.php';
   <div class="row row-spread">
     <div>
       <a href="../admin/index.php">&larr; All events</a>
-      <h1 class="page-title">Configure: <?= h($event['name']) ?></h1>
+      <h1 class="page-title">Configure: <span id="event-title"><?= h($event['name']) ?></span></h1>
     </div>
     <span id="status" class="status" role="status"></span>
   </div>

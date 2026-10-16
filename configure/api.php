@@ -59,7 +59,7 @@ function opt_int($v, int $min, int $max, string $label): ?int
 function load_state(int $eid): array
 {
     run('INSERT IGNORE INTO scimath_event_settings (event_id) VALUES (?)', [$eid]);
-    $event = one('SELECT id, name, subtitle, logo_path, cover_image_path FROM scimath_events WHERE id = ?', [$eid]);
+    $event = one('SELECT id, name, subtitle, event_date, logo_path, cover_image_path FROM scimath_events WHERE id = ?', [$eid]);
     if (!$event) throw new UserError('Event not found.');
     $st = one('SELECT * FROM scimath_event_settings WHERE event_id = ?', [$eid]);
 
@@ -249,6 +249,18 @@ try {
     $conn->begin_transaction();
     switch ($action) {
         case 'load':
+            break;
+
+        case 'save_details':
+            $name = trim((string)($p['name'] ?? '')); $sub = trim((string)($p['subtitle'] ?? '')); $date = trim((string)($p['event_date'] ?? ''));
+            if ($name === '' || mb_strlen($name) > 150) throw new UserError('Event name is required (max 150 characters).');
+            if (mb_strlen($sub) > 255) throw new UserError('Subtitle is too long (max 255 characters).');
+            if ($date !== '') {
+                $d = DateTime::createFromFormat('Y-m-d', $date);
+                if (!$d || $d->format('Y-m-d') !== $date) throw new UserError('Enter a valid date.');
+            }
+            run('UPDATE scimath_events SET name = ?, subtitle = ?, event_date = ? WHERE id = ?',
+                [$name, $sub === '' ? null : $sub, $date === '' ? null : $date, $eid]);
             break;
 
         case 'upload_asset':
