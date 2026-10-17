@@ -16,7 +16,7 @@ if (!$event) {
     exit;
 }
 
-$questions   = load_questions($conn, $eventId, (int)$event['default_points']);
+$questions   = load_questions($conn, $eventId);
 $contestants = load_contestants($conn, $eventId);
 
 $payload = [

@@ -17,7 +17,7 @@ if (!$event) {
     exit;
 }
 
-$questions   = load_questions($conn, $eventId, (int)$event['default_points']);
+$questions   = load_questions($conn, $eventId);
 $contestants = load_contestants($conn, $eventId);
 $scores      = [];
 foreach (load_scores($conn, $eventId) as $s) $scores[$s['q'] . '_' . $s['c']] = $s;

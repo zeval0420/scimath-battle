@@ -95,7 +95,7 @@ function normalize_uploads(?array $files, array &$errors): array
 }
 
 /** Writes slides into $absDir as 001.ext, 002.ext, ... in natural file-name order. Returns saved file names. */
-function save_slides(array $uploads, string $absDir): array
+function save_slides(array $uploads, string $absDir, string $prefix = ''): array
 {
     $items = [];
     $zip = null;
@@ -120,7 +120,7 @@ function save_slides(array $uploads, string $absDir): array
 
     $saved = [];
     foreach ($items as $n => $it) {
-        $fileName = sprintf('%03d.%s', count($saved) + 1, $it['ext']);
+        $fileName = sprintf('%s%03d.%s', $prefix, count($saved) + 1, $it['ext']);
         $dest = "$absDir/$fileName";
         if (isset($it['zip'])) {
             $data = $zip->getFromIndex($it['zip']);

@@ -6,6 +6,7 @@
   var ROUND_LABEL = { easy: 'Easy', medium: 'Average', hard: 'Difficult', clincher: 'Clincher' };
   var ROUNDS = Object.keys(ROUND_LABEL);
   var statusTimer;
+  var qFilter = 'all';
 
   // ---------- helpers ----------
   function esc(s) {
@@ -34,6 +35,7 @@
     fd.append('event', EVENT);
     fd.append('payload', JSON.stringify(payload || {}));
     if (opts.file) fd.append('file', opts.file);
+    (opts.files || []).forEach(function (f) { fd.append('files[]', f); });
     try {
       var res = await fetch(API, { method: 'POST', body: fd });
       var json = await res.json().catch(function () { return null; });
@@ -117,7 +119,7 @@
   function renderRounds() {
     var s = state.settings;
     $('body-rounds').innerHTML =
-      '<p class="hint">Each question uses its round\'s defaults unless you override them in the Questions table.</p>' +
+      '<p class="hint">Changing a value here applies it to every question in that round (any per-question override for that value is cleared). You can still override a single question in the Questions table afterwards.</p>' +
       '<div class="rounds-grid">' + ROUNDS.map(function (r) {
         return '<div class="round-box round-' + r + '"><h3>' + ROUND_LABEL[r] + '</h3>' +
           '<div class="field"><label class="field-label">Points</label>' +
@@ -128,10 +130,25 @@
       }).join('') + '</div>';
   }
 
+  function addSlidesForm() {
+    return '<div class="panel"><h3>Add more slides</h3>' +
+      '<span class="hint">Upload a .zip or several images (sorted by file name). They are added after the existing slides; your current slides, questions and scores are not touched.</span>' +
+      '<div class="row">' +
+      '<input class="file-input" type="file" id="add-files" multiple accept=".zip,image/*">' +
+      '<select class="dropdown dropdown-sm" id="add-as">' +
+      '<option value="promo">Add as promotional slides</option>' +
+      '<option value="alternate">Add as question, answer, question, answer...</option>' +
+      '<option value="question">Add as question slides</option>' +
+      '<option value="answer">Add as answer slides</option></select>' +
+      '<select class="dropdown dropdown-sm" id="add-round" title="Round for the new questions">' + roundOptions('easy') + '</select>' +
+      '<button class="btn btn-primary btn-sm" type="button" data-act="add-slides">Add slides</button></div>' +
+      '<span class="hint">The round only applies to new question slides. Answer slides pair with questions by order of appearance, so add the answers for new questions in the same order.</span></div>';
+  }
+
   function renderSlides() {
     var slides = state.slides;
     if (!slides.length) {
-      $('body-slides').innerHTML = '<div class="empty">No slides uploaded for this event.</div>';
+      $('body-slides').innerHTML = '<div class="empty">No slides uploaded for this event.</div>' + addSlidesForm();
       return;
     }
     var counts = { promo: 0, question: 0, answer: 0 };
@@ -144,7 +161,7 @@
       '<button class="btn" type="button" data-act="all-promo">Set all as promotional</button>' +
       '<button class="btn btn-danger" type="button" data-act="delete-all-slides">Delete all slides</button>' +
       '<span class="hint">' + counts.question + ' question(s), ' + counts.answer + ' answer(s), ' + counts.promo + ' promotional</span>' +
-      '</div>' +
+      '</div>' + addSlidesForm() +
       '<div class="tile-grid">' + slides.map(function (s, i) {
         return '<div class="tile tile-' + s.kind + '"><img loading="lazy" src="' + url(s.path) + '" alt="">' +
           '<span class="tile-name">' + (i + 1) + '. ' + esc(fileName(s.path)) + '</span>' +
@@ -163,7 +180,18 @@
       return;
     }
     var d = state.settings.rounds;
+    // Position of each question within its own round (moves only happen inside a round).
+    var seen = {}, rn = {}, byRound = {};
+    qs.forEach(function (q) {
+      rn[q.id] = seen[q.round] = (seen[q.round] || 0) + 1;
+      (byRound[q.round] = byRound[q.round] || []).push(q.id);
+    });
+    var shown = qFilter === 'all' ? qs : qs.filter(function (q) { return q.round === qFilter; });
     $('body-questions').innerHTML =
+      '<div class="row">' +
+      '<span class="field-label">Show</span>' +
+      '<select class="dropdown dropdown-sm" id="q-filter" data-act="q-filter"><option value="all">All rounds</option>' + roundOptions(qFilter) + '</select>' +
+      '</div>' +
       '<div class="row">' +
       '<span class="field-label">Set questions</span>' +
       '<input class="input input-sm num" type="number" min="1" id="bulk-from" placeholder="from #">' +
@@ -173,12 +201,15 @@
       '<select class="dropdown dropdown-sm" id="bulk-round">' + roundOptions('easy') + '</select>' +
       '<button class="btn btn-sm" type="button" data-act="bulk-round">Apply</button>' +
       '</div>' +
-      '<p class="hint">Leave points or time blank to use the round default (shown in grey).</p>' +
+      '<p class="hint">Leave points or time blank to use the round default (shown in grey). Changing a round\'s default above, or moving a question to another round, makes the question follow that round\'s defaults. Use the arrows to reorder questions within their round (the answer slide moves with its question).</p>' +
       '<div class="table-wrap"><table class="table"><thead><tr>' +
-      '<th>#</th><th>Question</th><th>Answer</th><th>Round</th><th>Points</th><th>Time (s)</th></tr></thead><tbody>' +
-      qs.map(function (q) {
+      '<th>#</th><th>Order</th><th>Question</th><th>Answer</th><th>Round</th><th>Points</th><th>Time (s)</th></tr></thead><tbody>' +
+      shown.map(function (q) {
+        var ids = byRound[q.round], pos = ids.indexOf(q.id);
         return '<tr class="tr-' + q.round + '" data-qid="' + q.id + '">' +
-          '<td><b>' + q.number + '</b></td>' +
+          '<td><b>' + q.number + '</b><br><span class="hint">' + ROUND_LABEL[q.round] + ' ' + rn[q.id] + '</span></td>' +
+          '<td><button class="btn btn-sm btn-ghost" type="button" data-act="q-move" data-dir="up" title="Move up in this round"' + (pos === 0 ? ' disabled' : '') + '>&uarr;</button>' +
+          '<button class="btn btn-sm btn-ghost" type="button" data-act="q-move" data-dir="down" title="Move down in this round"' + (pos === ids.length - 1 ? ' disabled' : '') + '>&darr;</button></td>' +
           '<td><img class="thumb" loading="lazy" src="' + url(q.image_path) + '" alt=""></td>' +
           '<td>' + (q.answer_image_path ? '<img class="thumb" loading="lazy" src="' + url(q.answer_image_path) + '" alt="">' : '<span class="cell-none">none</span>') + '</td>' +
           '<td><select class="dropdown dropdown-sm" data-act="q-field" data-prop="round">' + roundOptions(q.round) + '</select></td>' +
@@ -292,6 +323,11 @@
       });
       return;
     }
+    if (act === 'q-filter') {
+      qFilter = el.value;
+      renderQuestions();
+      return;
+    }
     if (act === 'upload') {
       if (el.files[0]) call('upload_asset', { key: el.dataset.key }, { file: el.files[0] });
     } else if (act === 'volume') {
@@ -367,6 +403,13 @@
       if (confirm('Delete ALL ' + state.slides.length + ' slides? This cannot be undone.' + (scored ? '\n\nRecorded scores for the questions will be deleted too.' : ''))) {
         call('delete_all_slides', { force: scored > 0 });
       }
+    } else if (act === 'add-slides') {
+      var files = Array.prototype.slice.call($('add-files').files);
+      if (!files.length) { setStatus('Choose a .zip or some images first.', true); return; }
+      setStatus('Saving...');
+      call('add_slides', { as: $('add-as').value, round: $('add-round').value }, { files: files });
+    } else if (act === 'q-move') {
+      call('move_question', { id: Number(tgt.closest('[data-qid]').dataset.qid), dir: tgt.dataset.dir });
     } else if (act === 'bulk-round') {
       call('bulk_round', { from: $('bulk-from').value, to: $('bulk-to').value, round: $('bulk-round').value });
     } else if (act === 'c-move') {

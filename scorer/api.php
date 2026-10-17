@@ -54,7 +54,7 @@ $event = load_event($conn, $eventId);
 if (!$event) fail(404, 'Event not found.');
 
 // The question and the team must both belong to this event.
-$stmt = $conn->prepare("SELECT points FROM scimath_questions WHERE id = ? AND event_id = ? AND is_active = 1");
+$stmt = $conn->prepare("SELECT points, `round` FROM scimath_questions WHERE id = ? AND event_id = ? AND is_active = 1");
 $stmt->bind_param('ii', $questionId, $eventId);
 $stmt->execute();
 $q = $stmt->get_result()->fetch_assoc();
@@ -65,7 +65,7 @@ $stmt->bind_param('ii', $contestId, $eventId);
 $stmt->execute();
 if (!$stmt->get_result()->fetch_row()) fail(400, 'Unknown team.');
 
-$points = $result === 'correct' ? ($q['points'] === null ? (int)$event['default_points'] : (int)$q['points']) : 0;
+$points = $result === 'correct' ? ($q['points'] === null ? (round_points($conn, $eventId)[$q['round']] ?? (int)$event['default_points']) : (int)$q['points']) : 0;
 
 $conn->begin_transaction();
 try {

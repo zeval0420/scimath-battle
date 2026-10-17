@@ -5,6 +5,7 @@ require_once __DIR__ . '/../config/auth.php';
 require_login(true);
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 require_once __DIR__ . '/../config/schema.php';
+require_once __DIR__ . '/../admin/event_create.php'; // normalize_uploads(), save_slides()
 
 header('Content-Type: application/json; charset=utf-8');
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -203,6 +204,103 @@ function classify(int $eid, array $items): void
     sync_answers($eid);
 }
 
+/** Next free display_order across promo, question and answer slides. */
+function next_slide_order(int $eid): int
+{
+    $max = 0;
+    foreach (['scimath_promotional_slides', 'scimath_questions', 'scimath_answer_slides'] as $t) {
+        $max = max($max, (int)val("SELECT COALESCE(MAX(display_order), 0) FROM $t WHERE event_id = ?", [$eid]));
+    }
+    return $max + 1;
+}
+
+/** Renumbers every slide's display_order 1..N, keeping the order shown on the page. */
+function normalize_order(int $eid): void
+{
+    $all = [];
+    foreach (['promo' => 'scimath_promotional_slides', 'question' => 'scimath_questions', 'answer' => 'scimath_answer_slides'] as $kind => $t) {
+        foreach (rows("SELECT id, display_order FROM $t WHERE event_id = ?", [$eid]) as $r) $all[] = [(int)$r['display_order'], $kind, (int)$r['id'], $t];
+    }
+    usort($all, fn($a, $b) => [$a[0], $a[1], $a[2]] <=> [$b[0], $b[1], $b[2]]);
+    foreach ($all as $i => [$o, $kind, $id, $t]) {
+        if ($o !== $i + 1) run("UPDATE $t SET display_order = ? WHERE id = ?", [$i + 1, $id]);
+    }
+}
+
+/** Appends uploaded images / a zip to an existing event. $as: promo | question | answer | alternate (question, answer, ...). */
+function add_slides(int $eid, string $as, string $round): void
+{
+    if (!in_array($as, ['promo', 'question', 'answer', 'alternate'], true)) throw new UserError('Choose what to add the slides as.');
+    if (!in_array($round, ROUNDS, true)) throw new UserError('Invalid round.');
+    $errors = [];
+    $uploads = normalize_uploads($_FILES['files'] ?? null, $errors);
+    if ($errors) throw new UserError(implode(' ', $errors));
+    if (!$uploads) throw new UserError('Choose a .zip or some images to add.');
+
+    $rel = "uploads/events/$eid/slides";
+    if (!is_dir(ROOT . "/$rel") && !mkdir(ROOT . "/$rel", 0775, true)) throw new UserError('Could not create the upload folder.');
+    $saved = [];
+    try {
+        try {
+            $saved = save_slides($uploads, ROOT . "/$rel", 'add_' . time() . '_' . bin2hex(random_bytes(2)) . '_');
+        } catch (RuntimeException $e) {
+            throw new UserError($e->getMessage());
+        }
+        if (!$saved) throw new UserError('No valid images were found in the upload.');
+        $have = (int)val('SELECT (SELECT COUNT(*) FROM scimath_promotional_slides WHERE event_id = ?)
+                               + (SELECT COUNT(*) FROM scimath_questions WHERE event_id = ?)
+                               + (SELECT COUNT(*) FROM scimath_answer_slides WHERE event_id = ?)', [$eid, $eid, $eid]);
+        if ($have + count($saved) > MAX_SLIDES) throw new UserError('Too many slides (max ' . MAX_SLIDES . ' per event).');
+
+        $order = next_slide_order($eid);
+        $n = (int)val('SELECT COALESCE(MAX(question_number), 0) FROM scimath_questions WHERE event_id = ?', [$eid]);
+        foreach ($saved as $i => $name) {
+            $path = "$rel/$name";
+            $kind = $as === 'alternate' ? ($i % 2 === 0 ? 'question' : 'answer') : $as;
+            if ($kind === 'promo') {
+                run("INSERT INTO scimath_promotional_slides (event_id, title, file_path, file_type, display_order) VALUES (?, ?, ?, 'image', ?)",
+                    [$eid, pathinfo($name, PATHINFO_FILENAME), $path, $order++]);
+            } elseif ($kind === 'question') {
+                run('INSERT INTO scimath_questions (event_id, round, question_number, image_path, display_order) VALUES (?, ?, ?, ?, ?)',
+                    [$eid, $round, ++$n, $path, $order++]);
+            } else {
+                run('INSERT INTO scimath_answer_slides (event_id, image_path, display_order) VALUES (?, ?, ?)', [$eid, $path, $order++]);
+            }
+        }
+        renumber_questions($eid);
+        sync_answers($eid);
+    } catch (Throwable $e) {
+        foreach ($saved as $name) delete_event_file($eid, "$rel/$name");
+        throw $e;
+    }
+}
+
+/** Moves a question one place up/down among the questions of its own round; its answer slide travels with it. */
+function move_question(int $eid, int $id, string $dir): void
+{
+    normalize_order($eid);
+    $qs = rows('SELECT id, round, display_order FROM scimath_questions WHERE event_id = ? ORDER BY display_order, id', [$eid]);
+    $i = null;
+    foreach ($qs as $k => $q) if ((int)$q['id'] === $id) $i = $k;
+    if ($i === null) throw new UserError('Question not found.');
+    $step = $dir === 'up' ? -1 : 1;
+    for ($j = $i + $step; isset($qs[$j]) && $qs[$j]['round'] !== $qs[$i]['round']; $j += $step);
+    if (!isset($qs[$j])) return; // already first/last in its round
+
+    $ans = [];
+    foreach (rows('SELECT id, question_id, display_order FROM scimath_answer_slides WHERE event_id = ? AND question_id IN (?, ?)',
+                  [$eid, $qs[$i]['id'], $qs[$j]['id']]) as $a) $ans[(int)$a['question_id']] = $a;
+    run('UPDATE scimath_questions SET display_order = ? WHERE id = ?', [$qs[$j]['display_order'], $qs[$i]['id']]);
+    run('UPDATE scimath_questions SET display_order = ? WHERE id = ?', [$qs[$i]['display_order'], $qs[$j]['id']]);
+    $ai = $ans[(int)$qs[$i]['id']] ?? null; $aj = $ans[(int)$qs[$j]['id']] ?? null;
+    if ($ai && $aj) {
+        run('UPDATE scimath_answer_slides SET display_order = ? WHERE id = ?', [$aj['display_order'], $ai['id']]);
+        run('UPDATE scimath_answer_slides SET display_order = ? WHERE id = ?', [$ai['display_order'], $aj['id']]);
+    }
+    renumber_questions($eid);
+    sync_answers($eid);
+}
+
 /** Deletes slides (and their files). $only = one [kind, id], or null for every slide of the event. */
 function delete_slides(int $eid, ?array $only, bool $force): void
 {
@@ -282,10 +380,16 @@ try {
         case 'save_round_defaults':
             $st = one('SELECT extra_settings FROM scimath_event_settings WHERE event_id = ?', [$eid]);
             $extra = json_decode($st['extra_settings'] ?? '', true) ?: [];
+            $old = one('SELECT default_points, default_time_seconds FROM scimath_event_settings WHERE event_id = ?', [$eid]);
             foreach (ROUNDS as $r) {
                 $pts = opt_int($p['rounds'][$r]['points'] ?? null, 0, 100000, 'Points');
                 $time = opt_int($p['rounds'][$r]['time'] ?? null, 1, 65535, 'Time limit');
                 if ($pts === null || $time === null) throw new UserError('Points and time are required for every round.');
+                $oldPts = (int)($extra['rounds'][$r]['points'] ?? $old['default_points']);
+                $oldTime = (int)($extra['rounds'][$r]['time'] ?? $old['default_time_seconds']);
+                // A changed round default applies to every question in that round (drops their per-question overrides).
+                if ($pts !== $oldPts) run('UPDATE scimath_questions SET points = NULL WHERE event_id = ? AND round = ?', [$eid, $r]);
+                if ($time !== $oldTime) run('UPDATE scimath_questions SET time_seconds = NULL WHERE event_id = ? AND round = ?', [$eid, $r]);
                 $extra['rounds'][$r] = ['points' => $pts, 'time' => $time];
             }
             run('UPDATE scimath_event_settings SET extra_settings = ? WHERE event_id = ?', [json_encode($extra), $eid]);
@@ -299,15 +403,26 @@ try {
             if (!in_array($p['round'] ?? '', ROUNDS, true)) throw new UserError('Invalid round.');
             $pts = opt_int($p['points'] ?? null, 0, 100000, 'Points');
             $time = opt_int($p['time'] ?? null, 1, 65535, 'Time limit');
-            run('UPDATE scimath_questions SET round = ?, points = ?, time_seconds = ? WHERE id = ? AND event_id = ?',
-                [$p['round'], $pts, $time, (int)($p['id'] ?? 0), $eid]);
+            // Moving a question to another round makes it follow that round's defaults.
+            run('UPDATE scimath_questions SET points = IF(round = ?, ?, NULL), time_seconds = IF(round = ?, ?, NULL), round = ?
+                 WHERE id = ? AND event_id = ?',
+                [$p['round'], $pts, $p['round'], $time, $p['round'], (int)($p['id'] ?? 0), $eid]);
+            break;
+
+        case 'move_question':
+            move_question($eid, (int)($p['id'] ?? 0), ($p['dir'] ?? '') === 'up' ? 'up' : 'down');
+            break;
+
+        case 'add_slides':
+            add_slides($eid, (string)($p['as'] ?? ''), (string)($p['round'] ?? 'easy'));
             break;
 
         case 'bulk_round':
             if (!in_array($p['round'] ?? '', ROUNDS, true)) throw new UserError('Invalid round.');
             $from = opt_int($p['from'] ?? null, 1, 65535, 'From'); $to = opt_int($p['to'] ?? null, 1, 65535, 'To');
             if ($from === null || $to === null || $from > $to) throw new UserError('Enter a valid question range.');
-            run('UPDATE scimath_questions SET round = ? WHERE event_id = ? AND question_number BETWEEN ? AND ?', [$p['round'], $eid, $from, $to]);
+            run('UPDATE scimath_questions SET points = IF(round = ?, points, NULL), time_seconds = IF(round = ?, time_seconds, NULL), round = ?
+                 WHERE event_id = ? AND question_number BETWEEN ? AND ?', [$p['round'], $p['round'], $p['round'], $eid, $from, $to]);
             break;
 
         case 'delete_slide':

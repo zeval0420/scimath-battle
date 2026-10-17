@@ -22,8 +22,22 @@ function load_event(mysqli $conn, int $eventId): ?array
     return $stmt->get_result()->fetch_assoc() ?: null;
 }
 
-function load_questions(mysqli $conn, int $eventId, int $defaultPoints): array
+/** Points per round from the configure page (falls back to the event-wide default). */
+function round_points(mysqli $conn, int $eventId): array
 {
+    $stmt = $conn->prepare("SELECT default_points, extra_settings FROM scimath_event_settings WHERE event_id = ?");
+    $stmt->bind_param('i', $eventId);
+    $stmt->execute();
+    $st = $stmt->get_result()->fetch_assoc() ?: [];
+    $extra = json_decode($st['extra_settings'] ?? '', true) ?: [];
+    $out = [];
+    foreach (ROUND_ORDER as $r) $out[$r] = (int)($extra['rounds'][$r]['points'] ?? ($st['default_points'] ?? 10));
+    return $out;
+}
+
+function load_questions(mysqli $conn, int $eventId): array
+{
+    $byRound = round_points($conn, $eventId);
     $stmt = $conn->prepare(
         "SELECT id, `round`, question_number, points
          FROM scimath_questions
@@ -41,7 +55,7 @@ function load_questions(mysqli $conn, int $eventId, int $defaultPoints): array
             'round'  => $r['round'],
             'number' => $rn,
             'name'   => ROUND_LABELS[$r['round']] . ' ' . $rn,
-            'points' => $r['points'] === null ? $defaultPoints : (int)$r['points'],
+            'points' => $r['points'] === null ? $byRound[$r['round']] : (int)$r['points'],
         ];
     }
     return $out;
