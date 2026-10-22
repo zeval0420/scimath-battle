@@ -1,10 +1,10 @@
 <?php
 // config/auth.php - session login. Single admin account (no users table in the schema).
-const AUTH_USER = 'admin';
-const AUTH_HASH = '$2y$10$RX0ZbPZ7T6rMqxnNkLBUwuc8dxNe.1C/OOCWZY6mC61DZuXh9X47i'; // password_hash() of the password
+const AUTH_USER_OPERATOR = 'admin';
+const AUTH_HASH_OPERATOR = '$2y$10$RX0ZbPZ7T6rMqxnNkLBUwuc8dxNe.1C/OOCWZY6mC61DZuXh9X47i'; // password_hash() of the password
 
-const AUTH_USER_OPERATOR = 'irc_quest';
-const AUTH_HASH_OPERATOR = '$2y$10$tMeTRx2VgvNnBpNR4gU6k.hmfqNQZNKuww864dJLT0iN1A/kIWi2u'; // password_hash() of the password
+const AUTH_USER = 'irc_quest';
+const AUTH_HASH = '$2y$10$tMeTRx2VgvNnBpNR4gU6k.hmfqNQZNKuww864dJLT0iN1A/kIWi2u'; // password_hash() of the password
 
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);
