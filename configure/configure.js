@@ -130,6 +130,18 @@
       }).join('') + '</div>';
   }
 
+  function renderResults() {
+    var g = state.settings.results_grid;
+    $('body-results').innerHTML =
+      '<p class="hint">How many columns and rows of school tiles the question results screen shows. Extra rows are added automatically if there are more schools than tiles.</p>' +
+      '<div class="rounds-grid"><div class="round-box">' +
+      '<div class="field"><label class="field-label" for="grid-cols">Columns</label>' +
+      '<input class="input" id="grid-cols" type="number" min="1" max="20" data-act="results-grid" data-prop="cols" value="' + g.cols + '"></div>' +
+      '<div class="field"><label class="field-label" for="grid-rows">Rows</label>' +
+      '<input class="input" id="grid-rows" type="number" min="1" max="20" data-act="results-grid" data-prop="rows" value="' + g.rows + '"></div>' +
+      '</div></div>';
+  }
+
   function addSlidesForm() {
     return '<div class="panel"><h3>Add more slides</h3>' +
       '<span class="hint">Upload a .zip or several images (sorted by file name). They are added after the existing slides; your current slides, questions and scores are not touched.</span>' +
@@ -299,6 +311,7 @@
     renderBranding();
     renderAudio();
     renderRounds();
+    renderResults();
     renderSlides();
     renderQuestions();
     renderPromo();
@@ -342,6 +355,8 @@
       });
       // Re-render so the question placeholders show the new defaults.
       call('save_round_defaults', { rounds: rounds });
+    } else if (act === 'results-grid') {
+      call('save_results_grid', { cols: $('grid-cols').value, rows: $('grid-rows').value });
     } else if (act === 'kind') {
       call('classify', { items: [{ kind: el.dataset.kind, id: Number(el.dataset.id), to: el.value }] });
     } else if (act === 'q-field') {

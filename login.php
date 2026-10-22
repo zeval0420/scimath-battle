@@ -12,14 +12,15 @@ function safe_next(string $n): string
 
 $next  = safe_next((string)($_GET['next'] ?? $_POST['next'] ?? ''));
 $error = '';
+$role  = role_for_path($next);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (attempt_login(trim($_POST['username'] ?? ''), (string)($_POST['password'] ?? ''))) {
+    if (attempt_login(trim($_POST['username'] ?? ''), (string)($_POST['password'] ?? ''), $role)) {
         header('Location: ' . $next);
         exit;
     }
     $error = 'Incorrect username or password.';
-} elseif (is_logged_in()) {
+} elseif (is_logged_in($role)) {
     header('Location: ' . $next);
     exit;
 }
@@ -54,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <img class="login-logo" src="assets/PSHSlogo.png" alt="Philippine Science High School - Ilocos Region Campus logo">
         <h1 class="login-title" id="login-title">IRC QUEST</h1>
         <p class="login-full">PSHS-IRC Quiz Utility for Events, Scoring, and Tournaments</p>
-        <p class="login-sub">Sign in to continue</p>
+        <p class="login-sub"><?= $role === 'operator' ? 'Operator sign-in required' : 'Sign in to continue' ?></p>
 
         <?php if ($error): ?><div class="notice" role="alert"><?= h($error) ?></div><?php endif; ?>
 

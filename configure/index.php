@@ -2,7 +2,7 @@
 // configure/index.php - event configuration. Uses the shared header and footer.
 // The page shell is static; configure.js loads and renders everything through api.php.
 require_once __DIR__ . '/../config/auth.php';
-require_login();
+require_login(false, 'operator');
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 
 $eventId = (int)($_GET['event'] ?? 0);
@@ -21,6 +21,7 @@ $sections = [
     'branding'   => 'Logo and cover slide',
     'audio'       => 'Audio',
     'rounds'      => 'Round defaults',
+    'results'     => 'Question results screen',
     'slides'      => 'Slide classification',
     'questions'   => 'Questions',
     'promo'       => 'Promotional slides',

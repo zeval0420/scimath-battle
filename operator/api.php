@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 require_once __DIR__ . '/../config/clincher.php';
 require_once __DIR__ . '/../config/schema.php';
+require_once __DIR__ . '/../config/api_helpers.php'; // UserError, run(), rows(), one(), val(), out()
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -16,25 +17,7 @@ const SCORED_ROUNDS = ['easy', 'medium', 'hard']; // clincher rounds carry no po
 const ROUND_LABEL = ['easy' => 'Easy', 'medium' => 'Average', 'hard' => 'Difficult', 'clincher' => 'Clincher'];
 const BASES = ['question', 'answer', 'boards_up'];
 
-class UserError extends RuntimeException {}
-
-function run(string $sql, array $p = []): mysqli_stmt
-{
-    global $conn;
-    $s = $conn->prepare($sql);
-    $s->execute($p ?: null);
-    return $s;
-}
-function rows(string $sql, array $p = []): array { return run($sql, $p)->get_result()->fetch_all(MYSQLI_ASSOC); }
-function one(string $sql, array $p = []): ?array { return rows($sql, $p)[0] ?? null; }
-function val(string $sql, array $p = []) { $r = one($sql, $p); return $r ? array_values($r)[0] : null; }
 function now_ms(): int { return (int)round(microtime(true) * 1000); }
-function out(array $data, int $code = 200): void
-{
-    http_response_code($code);
-    echo json_encode($data, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-    exit;
-}
 
 // ---------------------------------------------------------------- questions
 
@@ -256,8 +239,9 @@ function result_data(int $eid, array $overlay, array $qs): array
 function snapshot(int $eid, array $s, int $now, bool $operator): array
 {
     $ev = one('SELECT id, name, subtitle, logo_path, cover_image_path FROM scimath_events WHERE id = ?', [$eid]);
-    $st = one('SELECT timer_audio_path, banner_audio_path, game_audio_path, correct_audio_path, banner_audio_volume, game_audio_volume
+    $st = one('SELECT timer_audio_path, banner_audio_path, game_audio_path, correct_audio_path, banner_audio_volume, game_audio_volume, extra_settings
                FROM scimath_event_settings WHERE event_id = ?', [$eid]);
+    $grid = (json_decode($st['extra_settings'] ?? '', true) ?: [])['results_grid'] ?? [];
     $qs = questions($eid);
     $q = find_question($qs, $s['question_id']);
     $t = $s['timer'];
@@ -307,6 +291,7 @@ function snapshot(int $eid, array $s, int $now, bool $operator): array
             'banner' => $st['banner_audio_path'], 'banner_volume' => (int)$st['banner_audio_volume'],
             'game' => $st['game_audio_path'], 'game_volume' => (int)$st['game_audio_volume'],
         ],
+        'results_grid' => ['cols' => (int)($grid['cols'] ?? 8), 'rows' => (int)($grid['rows'] ?? 5)],
     ];
     if ($operator) {
         $snap['questions'] = $qs;

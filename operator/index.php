@@ -3,7 +3,7 @@
 // Sections are collapsible with the button in each card head.
 // The page shell is static; operator.js renders everything from operator/api.php.
 require_once __DIR__ . '/../config/auth.php';
-require_login();
+require_login(false, 'operator');
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 
 $eventId = (int)($_GET['event'] ?? 0);

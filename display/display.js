@@ -75,8 +75,9 @@
       var word = txt.split(/\s+/).reduce(function (m, w) { return Math.max(m, w.length); }, 1);
       longest = Math.max(longest, Math.max(word, Math.ceil(txt.length / 2)));
     });
-    // Fixed 8 x 5 grid (more rows only if there are more than 40 schools).
-    var cols = 8, rows = Math.max(5, Math.ceil(n / cols));
+    // Configured grid (default 8 x 5); more rows are added only if the schools don't fit.
+    var g = (snap && snap.results_grid) || {};
+    var cols = g.cols || 8, rows = Math.max(g.rows || 5, Math.ceil(n / cols));
     var best = { cols: cols, rows: rows, w: (W - gap * (cols - 1)) / cols, h: (H - gap * (rows - 1)) / rows };
     var font = Math.max(9, Math.min(34, best.h * 0.34, (best.w - 16) / (longest * 0.6)));
     list.style.overflow = 'hidden';
@@ -98,7 +99,7 @@
   window.addEventListener('resize', fitGrid);
 
   function renderScreen(sc) {
-    var key = JSON.stringify(sc);
+    var key = JSON.stringify(sc) + JSON.stringify(snap.results_grid || {});
     if (key === lastScreenKey) return;
     var prevScroll = list.scrollTop;
     var wasResults = !overlay.hidden;

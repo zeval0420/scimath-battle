@@ -2,9 +2,10 @@
 // configure/api.php - JSON endpoint for the configuration page.
 // POST: action, event, payload (JSON string), optional file. Always responds with {state} or {error}.
 require_once __DIR__ . '/../config/auth.php';
-require_login(true);
+require_login(true, 'operator');
 require_once __DIR__ . '/../config/database.php'; // provides $conn (mysqli)
 require_once __DIR__ . '/../config/schema.php';
+require_once __DIR__ . '/../config/api_helpers.php'; // UserError, run(), rows(), one(), val(), out()
 require_once __DIR__ . '/../admin/event_create.php'; // normalize_uploads(), save_slides()
 
 header('Content-Type: application/json; charset=utf-8');
@@ -24,26 +25,6 @@ const ASSETS = [
     'game_audio'   => ['scimath_event_settings', 'event_id', 'game_audio_path', 'audio'],
     'correct_audio' => ['scimath_event_settings', 'event_id', 'correct_audio_path', 'audio'],
 ];
-
-class UserError extends RuntimeException {}
-
-function run(string $sql, array $p = []): mysqli_stmt
-{
-    global $conn;
-    $s = $conn->prepare($sql);
-    $s->execute($p ?: null);
-    return $s;
-}
-function rows(string $sql, array $p = []): array { return run($sql, $p)->get_result()->fetch_all(MYSQLI_ASSOC); }
-function one(string $sql, array $p = []): ?array { return rows($sql, $p)[0] ?? null; }
-function val(string $sql, array $p = []) { $r = one($sql, $p); return $r ? array_values($r)[0] : null; }
-
-function out(array $data, int $code = 200): void
-{
-    http_response_code($code);
-    echo json_encode($data, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-    exit;
-}
 
 /** Positive/zero int or null (blank) from user input, range-checked. */
 function opt_int($v, int $min, int $max, string $label): ?int
@@ -98,6 +79,10 @@ function load_state(int $eid): array
             'banner_audio_volume' => (int)$st['banner_audio_volume'],
             'game_audio_volume'   => (int)$st['game_audio_volume'],
             'rounds' => $rounds,
+            'results_grid' => [
+                'cols' => (int)($extra['results_grid']['cols'] ?? 8),
+                'rows' => (int)($extra['results_grid']['rows'] ?? 5),
+            ],
         ],
         'slides' => $slides,
         'questions' => rows('SELECT id, question_number AS number, round, image_path, answer_image_path, points, time_seconds
@@ -392,6 +377,16 @@ try {
                 if ($time !== $oldTime) run('UPDATE scimath_questions SET time_seconds = NULL WHERE event_id = ? AND round = ?', [$eid, $r]);
                 $extra['rounds'][$r] = ['points' => $pts, 'time' => $time];
             }
+            run('UPDATE scimath_event_settings SET extra_settings = ? WHERE event_id = ?', [json_encode($extra), $eid]);
+            break;
+
+        case 'save_results_grid':
+            $cols = opt_int($p['cols'] ?? null, 1, 20, 'Columns');
+            $rws = opt_int($p['rows'] ?? null, 1, 20, 'Rows');
+            if ($cols === null || $rws === null) throw new UserError('Columns and rows are required.');
+            $st = one('SELECT extra_settings FROM scimath_event_settings WHERE event_id = ?', [$eid]);
+            $extra = json_decode($st['extra_settings'] ?? '', true) ?: [];
+            $extra['results_grid'] = ['cols' => $cols, 'rows' => $rws];
             run('UPDATE scimath_event_settings SET extra_settings = ? WHERE event_id = ?', [json_encode($extra), $eid]);
             break;
 
