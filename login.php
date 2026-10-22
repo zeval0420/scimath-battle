@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <img class="login-logo" src="assets/PSHSlogo.png" alt="Philippine Science High School - Ilocos Region Campus logo">
         <h1 class="login-title" id="login-title">IRC QUEST</h1>
         <p class="login-full">PSHS-IRC Quiz Utility for Events, Scoring, and Tournaments</p>
-        <p class="login-sub"><?= $role === 'operator' ? 'Operator sign-in required' : 'Sign in to continue' ?></p>
+        <p class="login-sub"><?= $role === 'operator' ? 'Admin sign-in required' : 'Sign in to continue' ?></p>
 
         <?php if ($error): ?><div class="notice" role="alert"><?= h($error) ?></div><?php endif; ?>
 
