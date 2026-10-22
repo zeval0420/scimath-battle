@@ -9,6 +9,22 @@
   var qFilter = 'all';
 
   // ---------- helpers ----------
+  // Inline two-step confirmation instead of a browser popup: the first click arms the button (and shows the
+  // warning in the status line), a second click within 4 seconds returns true.
+  function armed(btn, label, hint) {
+    if (btn.dataset.armed) { clearTimeout(btn._armTimer); return true; }
+    var orig = btn.textContent;
+    btn.dataset.armed = '1';
+    btn.textContent = label;
+    setStatus(hint, true);
+    btn._armTimer = setTimeout(function () {
+      delete btn.dataset.armed;
+      btn.textContent = orig;
+      setStatus('');
+    }, 4000);
+    return false;
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -400,7 +416,7 @@
       var msg = act === 'alternate'
         ? 'Re-classify ALL slides as alternating question / answer?'
         : 'Re-classify ALL slides as promotional? Questions will be removed.';
-      if (!confirm(msg)) return;
+      if (!armed(tgt, 'Click again to confirm', msg)) return;
       call('classify', {
         items: state.slides.map(function (s, i) {
           return { kind: s.kind, id: s.id, to: act === 'all-promo' ? 'promo' : (i % 2 === 0 ? 'question' : 'answer') };
@@ -410,12 +426,12 @@
       var sid = Number(tgt.dataset.id), sk = tgt.dataset.kind;
       var sl = state.slides.filter(function (s) { return s.kind === sk && Number(s.id) === sid; })[0];
       var sc = sl ? Number(sl.score_count || 0) : 0;
-      if (confirm('Delete this slide?' + (sc ? '\n\nIt is a question with ' + sc + ' recorded score(s); those are deleted too.' : ''))) {
+      if (armed(tgt, 'Confirm delete', sc ? 'This question has ' + sc + ' recorded score(s); they are deleted too.' : 'Click again to delete this slide.')) {
         call('delete_slide', { kind: sk, id: sid, force: sc > 0 });
       }
     } else if (act === 'delete-all-slides') {
       var scored = state.slides.reduce(function (n, s) { return n + Number(s.score_count || 0); }, 0);
-      if (confirm('Delete ALL ' + state.slides.length + ' slides? This cannot be undone.' + (scored ? '\n\nRecorded scores for the questions will be deleted too.' : ''))) {
+      if (armed(tgt, 'Confirm delete all', 'Click again to delete ALL ' + state.slides.length + ' slides. This cannot be undone.' + (scored ? ' Recorded scores are deleted too.' : ''))) {
         call('delete_all_slides', { force: scored > 0 });
       }
     } else if (act === 'add-slides') {
@@ -435,8 +451,8 @@
       var cid = Number(row.dataset.cid);
       var info = state.contestants.filter(function (c) { return Number(c.id) === cid; })[0];
       var scored = info ? Number(info.score_count) : 0;
-      var msg = 'Delete contestant "' + name + '"?' + (scored ? '\n\nThey have ' + scored + ' recorded score(s), which will be deleted too.' : '');
-      if (confirm(msg)) call('delete_contestant', { id: cid, force: scored > 0 });
+      var msg = 'Click again to delete "' + name + '".' + (scored ? ' Their ' + scored + ' recorded score(s) are deleted too.' : '');
+      if (armed(tgt, 'Confirm delete', msg)) call('delete_contestant', { id: cid, force: scored > 0 });
     }
   });
 

@@ -168,8 +168,24 @@
   });
 
   // ---------- Resetting scores ----------
-  function resetScores(action, message) {
-    if (!confirm(message)) return;
+  // Inline two-step confirmation instead of a popup: first click arms the button for 4 seconds.
+  function armed(btn, message) {
+    if (btn.dataset.armed) { clearTimeout(btn._armTimer); return true; }
+    var orig = btn.textContent;
+    btn.dataset.armed = '1';
+    btn.textContent = 'Click again to confirm';
+    setStatus(false, message);
+    btn._armTimer = setTimeout(function () {
+      delete btn.dataset.armed;
+      btn.textContent = orig;
+      setStatus(true, '');
+    }, 4000);
+    return false;
+  }
+
+  function resetScores(action, message, btn) {
+    if (!armed(btn, message)) return;
+    delete btn.dataset.armed;
     if (action === 'reset_question') {
       questions.length && Object.keys(scores).forEach(function (k) {
         if (k.indexOf(currentId + '_') === 0) delete scores[k];
@@ -205,10 +221,10 @@
   var resetQ = document.getElementById('reset-q');
   var resetEvent = document.getElementById('reset-event');
   if (resetQ) resetQ.addEventListener('click', function () {
-    resetScores('reset_question', 'Clear all scores for "' + qById[currentId].name + '"? This cannot be undone.');
+    resetScores('reset_question', 'Click again to clear all scores for ' + qById[currentId].name + '. This cannot be undone.', resetQ);
   });
   if (resetEvent) resetEvent.addEventListener('click', function () {
-    resetScores('reset_event', 'Clear ALL scores for every question in this event? This cannot be undone.');
+    resetScores('reset_event', 'Click again to clear ALL scores for every question in this event. This cannot be undone.', resetEvent);
   });
 
   // ---------- Tabulation ----------

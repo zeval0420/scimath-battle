@@ -152,9 +152,9 @@ include __DIR__ . '/../src/universal/header.php';
               <a class="btn btn-primary" href="../operator/index.php?event=<?= $id ?>">Operate</a>
               <a class="btn btn-primary" href="../scorer/index.php?event=<?= $id ?>">Score</a>
               <a class="btn" href="../configure/index.php?event=<?= $id ?>">Configure</a>
-              <form method="post" onsubmit="return confirm('Archive this event? It is hidden from this list, and nothing is deleted.');" style="display:inline">
+              <form method="post" class="confirm-form" style="display:inline">
                 <input type="hidden" name="archive_event" value="<?= $id ?>">
-                <button class="btn" type="submit">Archive</button>
+                <button class="btn" type="submit" data-confirm="Click again to archive" title="Hides the event from this list; nothing is deleted.">Archive</button>
               </form>
             </div>
           </div>
@@ -196,6 +196,18 @@ include __DIR__ . '/../src/universal/header.php';
       var card = document.getElementById(btn.dataset.toggle);
       var collapsed = card.classList.toggle('is-collapsed');
       btn.textContent = collapsed ? 'Show' : 'Hide';
+    });
+  });
+
+  // Inline two-step confirmation instead of a browser popup: first click arms the button for 4 seconds.
+  document.querySelectorAll('.confirm-form').forEach(function (form) {
+    var btn = form.querySelector('[data-confirm]'), orig = btn.textContent, timer;
+    form.addEventListener('submit', function (e) {
+      if (btn.dataset.armed) return;
+      e.preventDefault();
+      btn.dataset.armed = '1';
+      btn.textContent = btn.dataset.confirm;
+      timer = setTimeout(function () { delete btn.dataset.armed; btn.textContent = orig; }, 4000);
     });
   });
 </script>

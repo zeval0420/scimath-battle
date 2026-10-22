@@ -9,6 +9,7 @@ require_once __DIR__ . '/lib.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT); // failed queries throw, so the save handler can catch and retry
 
 function fail(int $code, string $msg): void
 {
@@ -67,12 +68,26 @@ if (!$stmt->get_result()->fetch_row()) fail(400, 'Unknown team.');
 
 $points = $result === 'correct' ? ($q['points'] === null ? (round_points($conn, $eventId)[$q['round']] ?? (int)$event['default_points']) : (int)$q['points']) : 0;
 
-$conn->begin_transaction();
+// Several scorers save at once (different contestants, same question). Locking a row that does not exist yet
+// (SELECT ... FOR UPDATE on the unique key) takes a gap lock, and two scorers inserting into neighbouring
+// gaps deadlock - one of them failed. So: look the row up without locking, lock it by primary key only when
+// it exists, and retry if MySQL still picks this transaction as a deadlock/lock-wait victim.
+$saved = false;
+for ($attempt = 0; $attempt < 4 && !$saved; $attempt++) {
 try {
-    $stmt = $conn->prepare("SELECT id, result, points_awarded FROM scimath_score_entries WHERE question_id = ? AND contestant_id = ? FOR UPDATE");
+    $stmt = $conn->prepare("SELECT id FROM scimath_score_entries WHERE question_id = ? AND contestant_id = ?");
     $stmt->bind_param('ii', $questionId, $contestId);
     $stmt->execute();
-    $prev = $stmt->get_result()->fetch_assoc();
+    $existingId = ($stmt->get_result()->fetch_row()[0] ?? null);
+
+    $conn->begin_transaction();
+    $prev = null;
+    if ($existingId !== null) {
+        $stmt = $conn->prepare("SELECT id, result, points_awarded FROM scimath_score_entries WHERE id = ? FOR UPDATE");
+        $stmt->bind_param('i', $existingId);
+        $stmt->execute();
+        $prev = $stmt->get_result()->fetch_assoc();
+    }
 
     if ($result === 'clear') {
         if ($prev) {
@@ -100,9 +115,13 @@ try {
         }
     }
     $conn->commit();
+    $saved = true;
 } catch (Throwable $e) {
-    $conn->rollback();
-    fail(500, 'Could not save the score.');
+    try { $conn->rollback(); } catch (Throwable $_) {}
+    $transient = in_array((int)$e->getCode(), [1205, 1213], true); // lock wait timeout, deadlock
+    if (!$transient || $attempt === 3) fail(500, 'Could not save the score.');
+    usleep(random_int(30000, 120000));
+}
 }
 
 echo json_encode(['ok' => true, 'scores' => load_scores($conn, $eventId)]);
